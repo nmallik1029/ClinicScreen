@@ -30,10 +30,20 @@ async function main() {
     },
   });
 
+  // Multiple admins per practice (each gets their own quickAuth login).
   await prisma.user.create({
     data: {
       email: "admin@testcardiology.example",
       name: "Front Desk Admin",
+      role: "OFFICE_ADMIN",
+      practiceId: practice.id,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: "neel@testcardiology.example",
+      name: "Neel Mallik",
       role: "OFFICE_ADMIN",
       practiceId: practice.id,
     },

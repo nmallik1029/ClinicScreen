@@ -17,6 +17,8 @@ export async function getCurrentUser(): Promise<User | null> {
 async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // Office admins must complete first-login onboarding before using the app.
+  if (user.role === "OFFICE_ADMIN" && !user.onboardedAt) redirect("/onboarding");
   return user;
 }
 

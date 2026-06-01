@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePracticeAccess } from "@/lib/auth";
 import { saveMediaFile, deleteUploadedFile, type MediaFormState } from "@/lib/upload";
+import { expireStalePending } from "@/lib/commands";
 
 const base = (practiceId: string) => `/practices/${practiceId}`;
 
@@ -161,8 +162,15 @@ export async function createRefreshCommand(practiceId: string, deviceId: string)
     select: { practiceId: true },
   });
   if (!device || device.practiceId !== practiceId) return;
-  await prisma.deviceCommand.create({
-    data: { deviceId, commandType: "REFRESH", status: "PENDING" },
+  await expireStalePending({ deviceId });
+  // Don't stack duplicates: if a fresh refresh is already pending, leave it.
+  const pending = await prisma.deviceCommand.findFirst({
+    where: { deviceId, status: "PENDING" },
   });
+  if (!pending) {
+    await prisma.deviceCommand.create({
+      data: { deviceId, commandType: "REFRESH", status: "PENDING" },
+    });
+  }
   revalidatePath(`${base(practiceId)}/screens`);
 }

@@ -40,6 +40,8 @@ model User {
   role       Role     @default(OFFICE_ADMIN)
   practiceId String?
   practice   Practice? @relation(fields: [practiceId], references: [id])
+  preferredName String?
+  onboardedAt   DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }

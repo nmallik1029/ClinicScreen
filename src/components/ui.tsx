@@ -89,17 +89,17 @@ export function Tabs({ practiceId, active }: { practiceId: string; active: strin
     { href: "/playlists", label: "Playlists" },
   ];
   return (
-    <nav className="mb-6 flex gap-1 border-b">
+    <nav className="mb-6 flex flex-wrap gap-1 rounded-lg border bg-white p-1 shadow-sm">
       {tabs.map((t) => {
         const isActive = active === t.label;
         return (
           <Link
             key={t.label}
             href={`/practices/${practiceId}${t.href}`}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+            className={`rounded-md px-3 py-1.5 text-sm transition ${
               isActive
-                ? "border-blue-600 font-medium text-blue-700"
-                : "border-transparent text-slate-500 hover:text-slate-800"
+                ? "bg-blue-600 font-medium text-white"
+                : "text-slate-600 hover:bg-slate-100"
             }`}
           >
             {t.label}

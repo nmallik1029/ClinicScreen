@@ -95,16 +95,34 @@ ClinicScreen sets its own signed, HTTP-only session cookie (`SESSION_SECRET`).
    `QUICKAUTH_URL=http://localhost:3000` and
    `QUICKAUTH_REDIRECT_URI=http://localhost:3001/auth/callback`.
 
-The seed creates two users (sign in with quickAuth using these **exact emails**):
+The seed creates these users (sign in with quickAuth using these **exact emails**):
 
 | Email | Role | Access |
 |---|---|---|
 | `superadmin@clinicscreen.example` | SUPERADMIN | All practices + Superadmin pages |
 | `admin@testcardiology.example` | OFFICE_ADMIN | Only the Test Cardiology Clinic |
+| `neel@testcardiology.example` | OFFICE_ADMIN | Only the Test Cardiology Clinic |
 
-To add your own user: create the account in quickAuth, then add a matching `User`
-row here (`npx prisma studio`) with the same email, the desired `role`, and a
-`practiceId` for office admins.
+### Multiple admins per practice & first-login onboarding
+
+A practice can have many admins — each gets their **own** login (no shared
+credentials). To onboard a person:
+
+1. **Create their quickAuth account with a temp password** (in the quickAuth repo):
+   ```bash
+   npx tsx scripts/create-practice-admin.ts \
+     --email neel@testcardiology.example --username neelmallik \
+     --password "Temp1234!" --name "Neel Mallik"
+   ```
+   This marks the account "must change password".
+2. **Add a matching ClinicScreen `User` row** (same email, `role`, `practiceId`).
+
+On first login (office admins only), the user is sent to **`/onboarding`** and must
+**set a new password** (changed in quickAuth via a token-authenticated
+`POST /oauth/change-password`) and **choose a preferred name** before they can use the
+app. Their username stays the same; only the password changes. The preferred name is
+shown in the dashboard greeting ("Good morning/afternoon/evening, &lt;name&gt;").
+Superadmins skip onboarding.
 
 ## Media uploads
 

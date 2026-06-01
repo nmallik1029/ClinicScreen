@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Tabs } from "@/components/ui";
+import { Card, Tabs } from "@/components/ui";
 import { requirePracticeAccess } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
 
+function greetingFor(date: Date) {
+  const h = date.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export default async function OverviewPage({ params }: { params: { practiceId: string } }) {
-  await requirePracticeAccess(params.practiceId);
+  const user = await requirePracticeAccess(params.practiceId);
   const practice = await prisma.practice.findUnique({
     where: { id: params.practiceId },
     include: {
@@ -28,10 +35,20 @@ export default async function OverviewPage({ params }: { params: { practiceId: s
     { label: "Playlists", value: practice._count.playlists, href: "playlists" },
   ];
 
+  const displayName = user.preferredName ?? user.name;
+
   return (
     <div>
-      <PageHeader title={practice.name} subtitle={practice.specialty ?? "General practice"} />
       <Tabs practiceId={practice.id} active="Overview" />
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold">
+          {greetingFor(new Date())}, {displayName}
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          {practice.name} · {practice.specialty ?? "General practice"}
+        </p>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
         {stats.map((s) => (

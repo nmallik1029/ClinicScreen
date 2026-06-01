@@ -5,11 +5,14 @@ import { PageHeader, Card, Tabs, Input, Select, Label, Button, StatusBadge } fro
 import { createScreen, updateScreen, createRefreshCommand } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
+import { expireStalePending, RECENT_COMMAND_MS } from "@/lib/commands";
 
 export default async function ScreensPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
   const practice = await prisma.practice.findUnique({ where: { id: params.practiceId } });
   if (!practice) notFound();
+
+  await expireStalePending({ practiceId: practice.id });
 
   const [devices, locations, playlists] = await Promise.all([
     prisma.device.findMany({
@@ -18,7 +21,11 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
       include: {
         location: true,
         assignedPlaylist: true,
-        commands: { orderBy: { createdAt: "desc" }, take: 3 },
+        commands: {
+          where: { createdAt: { gte: new Date(Date.now() - RECENT_COMMAND_MS) } },
+          orderBy: { createdAt: "desc" },
+          take: 3,
+        },
       },
     }),
     prisma.location.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),

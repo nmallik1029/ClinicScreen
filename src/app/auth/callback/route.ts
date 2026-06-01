@@ -49,5 +49,14 @@ export async function GET(req: NextRequest) {
   if (!user) return fail(req);
 
   createSession(user.id);
+  // Keep the access token briefly so first-login onboarding can change the
+  // quickAuth password on the user's behalf.
+  cookies().set("cs_qa_token", token.access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 3600,
+  });
   return NextResponse.redirect(new URL("/", req.url));
 }

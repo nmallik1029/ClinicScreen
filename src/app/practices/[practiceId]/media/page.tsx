@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Tabs, Input, Select, Label, Button } from "@/components/ui";
-import { createMedia } from "../actions";
+import { PageHeader, Card, Tabs } from "@/components/ui";
 import { requirePracticeAccess } from "@/lib/auth";
+import MediaUploadForm from "./MediaUploadForm";
 
 export default async function MediaPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
@@ -11,7 +11,7 @@ export default async function MediaPage({ params }: { params: { practiceId: stri
 
   const media = await prisma.media.findMany({
     where: { practiceId: practice.id },
-    orderBy: { title: "asc" },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
@@ -23,16 +23,33 @@ export default async function MediaPage({ params }: { params: { practiceId: stri
         <div className="md:col-span-2">
           <Card>
             {media.length === 0 ? (
-              <p className="text-sm text-slate-500">No media yet.</p>
+              <p className="text-sm text-slate-500">No media yet. Upload a file to get started.</p>
             ) : (
               <ul className="divide-y">
                 {media.map((m) => (
-                  <li key={m.id} className="py-3">
-                    <p className="font-medium">{m.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {m.type} · {m.durationSeconds ? `${m.durationSeconds}s · ` : ""}
-                      <span className="break-all">{m.url}</span>
-                    </p>
+                  <li key={m.id} className="flex items-center gap-3 py-3">
+                    <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100">
+                      {m.type === "IMAGE" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={m.url} alt={m.title} className="h-full w-full object-cover" />
+                      ) : (
+                        <video src={m.url} className="h-full w-full object-cover" muted preload="metadata" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium">{m.title}</p>
+                      <p className="text-xs text-slate-500">
+                        {m.type} · {m.durationSeconds ? `${m.durationSeconds}s · ` : ""}
+                        {m.createdAt.toLocaleDateString()}
+                      </p>
+                      <a
+                        href={m.url}
+                        target="_blank"
+                        className="block truncate text-xs text-blue-600 hover:underline"
+                      >
+                        {m.url}
+                      </a>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -41,32 +58,8 @@ export default async function MediaPage({ params }: { params: { practiceId: stri
         </div>
 
         <Card>
-          <h2 className="mb-3 font-medium">Add media</h2>
-          <p className="mb-3 text-xs text-slate-500">
-            Paste a URL for now. File uploads come later.
-          </p>
-          <form action={createMedia.bind(null, practice.id)} className="space-y-3">
-            <div>
-              <Label>Title</Label>
-              <Input name="title" placeholder="e.g. Blood Pressure Basics" required />
-            </div>
-            <div>
-              <Label>Type</Label>
-              <Select name="type" defaultValue="VIDEO">
-                <option value="VIDEO">Video</option>
-                <option value="IMAGE">Image</option>
-              </Select>
-            </div>
-            <div>
-              <Label>URL</Label>
-              <Input name="url" placeholder="https://..." required />
-            </div>
-            <div>
-              <Label>Duration seconds (optional)</Label>
-              <Input name="durationSeconds" type="number" min="1" placeholder="e.g. 30" />
-            </div>
-            <Button type="submit">Add media</Button>
-          </form>
+          <h2 className="mb-3 font-medium">Upload media</h2>
+          <MediaUploadForm practiceId={practice.id} />
         </Card>
       </div>
     </div>

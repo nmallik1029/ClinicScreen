@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import type { MediaType } from "@prisma/client";
 import { requirePracticeAccess } from "@/lib/auth";
+import { saveMediaFile, type MediaFormState } from "@/lib/upload";
 
 const base = (practiceId: string) => `/practices/${practiceId}`;
 
@@ -54,23 +54,32 @@ export async function updateScreen(practiceId: string, deviceId: string, formDat
 }
 
 // --- Media ---
-export async function createMedia(practiceId: string, formData: FormData) {
+export async function createMedia(
+  practiceId: string,
+  _prevState: MediaFormState,
+  formData: FormData
+): Promise<MediaFormState> {
   await requirePracticeAccess(practiceId);
   const title = String(formData.get("title") ?? "").trim();
-  const type = String(formData.get("type") ?? "VIDEO") as MediaType;
-  const url = String(formData.get("url") ?? "").trim();
   const durationRaw = String(formData.get("durationSeconds") ?? "").trim();
-  if (!title || !url) return;
+  const file = formData.get("file");
+  if (!title) return { error: "Please enter a title." };
+  if (!(file instanceof File)) return { error: "Please choose a file to upload." };
+
+  const saved = await saveMediaFile(practiceId, file);
+  if (!saved.ok) return { error: saved.error };
+
   await prisma.media.create({
     data: {
       practiceId,
       title,
-      type,
-      url,
+      type: saved.type,
+      url: saved.url,
       durationSeconds: durationRaw ? Number(durationRaw) : null,
     },
   });
   revalidatePath(`${base(practiceId)}/media`);
+  return { ok: true };
 }
 
 // --- Playlists ---

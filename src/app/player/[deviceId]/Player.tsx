@@ -14,9 +14,11 @@ export default function Player({ screenName, items }: { screenName: string; item
   const [index, setIndex] = useState(0);
   const current = items[index];
 
+  const advance = () => setIndex((i) => (i + 1) % items.length);
+
   useEffect(() => {
     const ms = Math.max(2, current.duration) * 1000;
-    const timer = setTimeout(() => setIndex((i) => (i + 1) % items.length), ms);
+    const timer = setTimeout(advance, ms);
     return () => clearTimeout(timer);
   }, [index, current, items.length]);
 
@@ -25,7 +27,12 @@ export default function Player({ screenName, items }: { screenName: string; item
       <div className="flex h-full w-full items-center justify-center">
         {current.type === "IMAGE" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={current.url} alt={current.title} className="max-h-full max-w-full object-contain" />
+          <img
+            src={current.url}
+            alt={current.title}
+            onError={advance}
+            className="max-h-full max-w-full object-contain"
+          />
         ) : (
           <video
             key={current.id}
@@ -33,6 +40,8 @@ export default function Player({ screenName, items }: { screenName: string; item
             autoPlay
             muted
             playsInline
+            onError={advance}
+            onEnded={advance}
             className="max-h-full max-w-full object-contain"
           />
         )}

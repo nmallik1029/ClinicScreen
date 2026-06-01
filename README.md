@@ -106,6 +106,25 @@ To add your own user: create the account in quickAuth, then add a matching `User
 row here (`npx prisma studio`) with the same email, the desired `role`, and a
 `practiceId` for office admins.
 
+## Media uploads
+
+Media is uploaded as real files (no more pasted URLs).
+
+- **Where files are stored:** `public/uploads/<practiceId>/` (git-ignored). They are
+  served by Next.js at `/uploads/<practiceId>/<file>`, which the dashboard and the
+  player both use. This local storage is intentionally swappable for Cloudflare R2 later.
+- **Allowed types:** images `jpg`, `jpeg`, `png`, `webp`; videos `mp4`, `webm`.
+  Anything else is rejected with a clear message.
+- **Size limits:** images max **10 MB**, videos max **100 MB**.
+
+**Test upload → playlist → player:**
+1. Sign in, open a practice → **Media** → upload an image or video (give it a title).
+2. It appears in the media list with a thumbnail/preview.
+3. Go to **Playlists**, open a playlist, add the uploaded media.
+4. Go to **Screens**, assign that playlist to a screen.
+5. Open the screen's **player** link (`/player/<screenId>`) — the uploaded media
+   displays/plays.
+
 ## Seed data
 
 One practice — **Test Cardiology Clinic** (Cardiology) — with a Main Office location,

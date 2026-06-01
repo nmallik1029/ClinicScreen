@@ -9,3 +9,6 @@ next-env.d.ts
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Locally uploaded media files
+/public/uploads/

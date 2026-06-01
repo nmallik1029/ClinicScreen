@@ -2,7 +2,13 @@ import { prisma } from "@/lib/prisma";
 import Player from "./Player";
 import DeviceAgent from "./DeviceAgent";
 
-export default async function PlayerPage({ params }: { params: { deviceId: string } }) {
+export default async function PlayerPage({
+  params,
+  searchParams,
+}: {
+  params: { deviceId: string };
+  searchParams: { t?: string };
+}) {
   const device = await prisma.device.findUnique({
     where: { id: params.deviceId },
     include: {
@@ -20,12 +26,21 @@ export default async function PlayerPage({ params }: { params: { deviceId: strin
     );
   }
 
+  if (!device.token || device.token !== searchParams.t) {
+    return (
+      <Screen>
+        <p className="text-2xl font-medium">Screen not paired</p>
+        <p className="mt-2 text-slate-400">Open this screen from the dashboard to pair it.</p>
+      </Screen>
+    );
+  }
+
   const items = device.assignedPlaylist?.items ?? [];
 
   if (items.length === 0) {
     return (
       <Screen>
-        <DeviceAgent deviceId={device.id} />
+        <DeviceAgent deviceId={device.id} token={device.token} />
         <p className="text-2xl font-medium">No playlist assigned</p>
         <p className="mt-2 text-slate-400">{device.name}</p>
       </Screen>
@@ -42,7 +57,7 @@ export default async function PlayerPage({ params }: { params: { deviceId: strin
 
   return (
     <>
-      <DeviceAgent deviceId={device.id} />
+      <DeviceAgent deviceId={device.id} token={device.token} />
       <Player screenName={device.name} items={playerItems} />
     </>
   );

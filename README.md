@@ -143,6 +143,25 @@ Media is uploaded as real files (no more pasted URLs).
 5. Open the screen's **player** link (`/player/<screenId>`) — the uploaded media
    displays/plays.
 
+## Screens are paired with a per-device token
+
+Each screen has a secret `token`. The player URL is `/player/<screenId>?t=<token>`, and
+the heartbeat/command APIs require it — so screens (and their playlists/commands) can't
+be viewed or driven by guessing an ID. The dashboard's **Open player ↗** link includes
+the token; **Reset link** rotates it (invalidating the old URL). New screens get a token
+automatically. (Device-token auth replaces the previously-open player routes.)
+
+## Admins, sessions & offboarding
+
+- **Add an admin from the dashboard:** on a practice's superadmin page, **Add admin**
+  provisions a quickAuth login (temp password, must-change-on-first-login) *and* the
+  ClinicScreen user in one step, showing the temp password once. Requires
+  `QUICKAUTH_PROVISION_SECRET` (ClinicScreen) to match `PROVISION_SECRET` (quickAuth).
+- **Disable / enable** an admin from the same page; disabling cuts their access
+  immediately and revokes active sessions.
+- **Sessions** are signed, expiring (7 days), and revocable: a disabled user or one whose
+  sessions were revoked is rejected on the next request even with a valid cookie.
+
 ## Screens: heartbeat, status & refresh
 
 The browser player behaves like a real display device:

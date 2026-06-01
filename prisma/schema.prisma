@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -42,6 +43,8 @@ model User {
   practice   Practice? @relation(fields: [practiceId], references: [id])
   preferredName String?
   onboardedAt   DateTime?
+  disabledAt        DateTime?
+  sessionsValidFrom DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -79,6 +82,7 @@ model Device {
   locationId         String?
   location           Location?    @relation(fields: [locationId], references: [id])
   name               String
+  token              String?      @unique
   roomType           String?
   status             DeviceStatus @default(UNKNOWN)
   lastSeenAt         DateTime?

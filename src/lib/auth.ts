@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
+import { getSession } from "@/lib/session";
 
 /**
  * Returns the ClinicScreen User for the current session, or null if anonymous.
@@ -9,9 +9,14 @@ import { getSessionUserId } from "@/lib/session";
  * see src/app/auth/callback/route.ts.
  */
 export async function getCurrentUser(): Promise<User | null> {
-  const userId = getSessionUserId();
-  if (!userId) return null;
-  return prisma.user.findUnique({ where: { id: userId } });
+  const session = getSession();
+  if (!session) return null;
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) return null;
+  if (user.disabledAt) return null; // offboarded
+  // Revoked sessions: issued before the user's "valid from" cutoff.
+  if (user.sessionsValidFrom && session.issuedAt < user.sessionsValidFrom.getTime()) return null;
+  return user;
 }
 
 async function requireUser(): Promise<User> {

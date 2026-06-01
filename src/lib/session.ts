@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 
 const COOKIE = "cs_session";
-const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function secret() {
   const s = process.env.SESSION_SECRET;
@@ -14,29 +14,35 @@ function sign(value: string) {
   return crypto.createHmac("sha256", secret()).update(value).digest("base64url");
 }
 
-/** Set a signed session cookie for the given ClinicScreen user id. Route handlers only. */
+/** Set a signed, expiring session cookie. Route handlers / server actions only. */
 export function createSession(userId: string) {
-  cookies().set(COOKIE, `${userId}.${sign(userId)}`, {
+  const payload = `${userId}.${Date.now()}`;
+  cookies().set(COOKIE, `${payload}.${sign(payload)}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: MAX_AGE,
+    maxAge: Math.floor(MAX_AGE_MS / 1000),
   });
 }
 
-/** Return the user id from a valid signed session cookie, or null. */
-export function getSessionUserId(): string | null {
+/** Verify the cookie signature + age. Returns the userId and when it was issued. */
+export function getSession(): { userId: string; issuedAt: number } | null {
   const raw = cookies().get(COOKIE)?.value;
   if (!raw) return null;
-  const idx = raw.lastIndexOf(".");
-  if (idx < 0) return null;
-  const userId = raw.slice(0, idx);
-  const sig = raw.slice(idx + 1);
-  const expected = sign(userId);
+  const lastDot = raw.lastIndexOf(".");
+  if (lastDot < 0) return null;
+  const payload = raw.slice(0, lastDot);
+  const sig = raw.slice(lastDot + 1);
+  const expected = sign(payload);
   if (sig.length !== expected.length) return null;
   if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
-  return userId;
+
+  const [userId, issuedAtStr] = payload.split(".");
+  const issuedAt = Number(issuedAtStr);
+  if (!userId || !Number.isFinite(issuedAt)) return null;
+  if (Date.now() - issuedAt > MAX_AGE_MS) return null; // expired
+  return { userId, issuedAt };
 }
 
 export function destroySession() {

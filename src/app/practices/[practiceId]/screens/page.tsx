@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Tabs, Input, Select, Label, Button, StatusBadge } from "@/components/ui";
-import { createScreen, updateScreen, createRefreshCommand } from "../actions";
+import { createScreen, updateScreen, createRefreshCommand, resetDeviceToken } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
 import { expireStalePending, RECENT_COMMAND_MS } from "@/lib/commands";
@@ -61,9 +61,24 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
                       Refresh screen
                     </Button>
                   </form>
-                  <Link href={`/player/${d.id}`} target="_blank" className="text-xs text-blue-700">
-                    Open player ↗
-                  </Link>
+                  {d.token ? (
+                    <Link
+                      href={`/player/${d.id}?t=${encodeURIComponent(d.token)}`}
+                      target="_blank"
+                      className="text-xs text-blue-700"
+                    >
+                      Open player ↗
+                    </Link>
+                  ) : null}
+                  <form action={resetDeviceToken.bind(null, practice.id, d.id)}>
+                    <button
+                      type="submit"
+                      className="text-xs text-slate-400 hover:text-slate-700"
+                      title="Invalidate the current player link and generate a new one"
+                    >
+                      Reset link
+                    </button>
+                  </form>
                 </div>
               </div>
 

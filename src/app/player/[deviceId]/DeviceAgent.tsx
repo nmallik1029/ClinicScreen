@@ -11,26 +11,27 @@ const POLL_MS = 12_000;
  * reports heartbeat and polls for pending commands (REFRESH). Failures are
  * swallowed so playback is never interrupted.
  */
-export default function DeviceAgent({ deviceId }: { deviceId: string }) {
+export default function DeviceAgent({ deviceId, token }: { deviceId: string; token: string }) {
   const router = useRouter();
 
   useEffect(() => {
     let active = true;
     const base = `/api/player/${deviceId}`;
+    const q = `?t=${encodeURIComponent(token)}`;
 
-    const beat = () => fetch(`${base}/heartbeat`, { method: "POST" }).catch(() => {});
+    const beat = () => fetch(`${base}/heartbeat${q}`, { method: "POST" }).catch(() => {});
     beat();
     const heartbeat = setInterval(beat, HEARTBEAT_MS);
 
     const poll = async () => {
       try {
-        const res = await fetch(`${base}/commands`, { cache: "no-store" });
+        const res = await fetch(`${base}/commands${q}`, { cache: "no-store" });
         if (!res.ok) return;
         const commands: { id: string; commandType: string }[] = await res.json();
         let refreshed = false;
         for (const c of commands) {
           if (c.commandType === "REFRESH") {
-            await fetch(`${base}/commands/${c.id}/complete`, { method: "POST" }).catch(() => {});
+            await fetch(`${base}/commands/${c.id}/complete${q}`, { method: "POST" }).catch(() => {});
             refreshed = true;
           }
         }
@@ -46,7 +47,7 @@ export default function DeviceAgent({ deviceId }: { deviceId: string }) {
       clearInterval(heartbeat);
       clearInterval(polling);
     };
-  }, [deviceId, router]);
+  }, [deviceId, token, router]);
 
   return null;
 }

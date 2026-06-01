@@ -1,6 +1,8 @@
 import { PrismaClient, MediaType, DeviceStatus } from "@prisma/client";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
+const deviceToken = () => crypto.randomBytes(24).toString("base64url");
 
 async function main() {
   // Clean slate (dev only)
@@ -124,6 +126,7 @@ async function main() {
       status: DeviceStatus.ONLINE,
       lastSeenAt: new Date(),
       assignedPlaylistId: waitingPlaylist.id,
+      token: deviceToken(),
     },
   });
 
@@ -135,6 +138,7 @@ async function main() {
       roomType: "Exam Room",
       status: DeviceStatus.OFFLINE,
       assignedPlaylistId: examPlaylist.id,
+      token: deviceToken(),
     },
   });
 
@@ -145,6 +149,7 @@ async function main() {
       name: "Hallway",
       roomType: "Hallway",
       status: DeviceStatus.UNKNOWN,
+      token: deviceToken(),
     },
   });
 

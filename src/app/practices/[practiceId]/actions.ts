@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePracticeAccess } from "@/lib/auth";
 import { saveMediaFile, deleteUploadedFile, type MediaFormState } from "@/lib/upload";
 import { expireStalePending } from "@/lib/commands";
+import { newDeviceToken } from "@/lib/device";
 
 const base = (practiceId: string) => `/practices/${practiceId}`;
 
@@ -31,8 +32,20 @@ export async function createScreen(practiceId: string, formData: FormData) {
       name,
       roomType: roomType || null,
       locationId: locationId || null,
+      token: newDeviceToken(),
     },
   });
+  revalidatePath(`${base(practiceId)}/screens`);
+}
+
+export async function resetDeviceToken(practiceId: string, deviceId: string) {
+  await requirePracticeAccess(practiceId);
+  const device = await prisma.device.findUnique({
+    where: { id: deviceId },
+    select: { practiceId: true },
+  });
+  if (!device || device.practiceId !== practiceId) return;
+  await prisma.device.update({ where: { id: deviceId }, data: { token: newDeviceToken() } });
   revalidatePath(`${base(practiceId)}/screens`);
 }
 

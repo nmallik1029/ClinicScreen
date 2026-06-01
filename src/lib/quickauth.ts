@@ -5,6 +5,7 @@ export const quickauth = {
   clientSecret: process.env.QUICKAUTH_CLIENT_SECRET ?? "",
   redirectUri: process.env.QUICKAUTH_REDIRECT_URI ?? "http://localhost:3001/auth/callback",
   scope: "profile email",
+  provisionSecret: process.env.QUICKAUTH_PROVISION_SECRET ?? "",
 };
 
 export const OAUTH_STATE_COOKIE = "cs_oauth_state";

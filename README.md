@@ -125,6 +125,32 @@ Media is uploaded as real files (no more pasted URLs).
 5. Open the screen's **player** link (`/player/<screenId>`) — the uploaded media
    displays/plays.
 
+## Screens: heartbeat, status & refresh
+
+The browser player behaves like a real display device:
+
+- **Heartbeat:** an open `/player/<screenId>` posts to
+  `POST /api/player/<id>/heartbeat` every 30s, updating the screen's `lastSeenAt`
+  (and `softwareVersion = "browser-dev"`). Heartbeat failures never interrupt playback.
+- **Online/offline:** status is **computed** from `lastSeenAt` — **Online** if seen
+  within the last 2 minutes, otherwise **Offline**. No background job; a screen goes
+  Offline on its own once heartbeats stop. Shown on the Screens, Overview, and
+  Superadmin pages.
+- **Refresh command:** "Refresh screen" on the Screens page creates a `PENDING`
+  `DeviceCommand` (RBAC-enforced: office admins only for their own practice). The
+  player polls `GET /api/player/<id>/commands` every ~12s, and on a `REFRESH` it
+  refetches its playlist and marks the command complete via
+  `POST /api/player/<id>/commands/<commandId>/complete`. Recent commands are listed
+  under each screen.
+
+> The `/player/*` and `/api/player/*` routes are intentionally **unauthenticated** in
+> dev. Per-device token auth is a later step.
+
+**Test it:** open a screen's player → it shows **Online** within 30s and its last-seen
+updates; close the tab → it shows **Offline** after ~2 min. Click **Refresh screen**
+(a `PENDING` command appears) → the open player picks it up within ~12s, reloads its
+playlist, and the command flips to **Completed**.
+
 ## Seed data
 
 One practice — **Test Cardiology Clinic** (Cardiology) — with a Main Office location,

@@ -1,4 +1,4 @@
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import type { MediaType } from "@prisma/client";
@@ -50,4 +50,10 @@ export async function saveMediaFile(practiceId: string, file: File): Promise<Sav
   await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));
 
   return { ok: true, type, url: `/uploads/${practiceId}/${filename}` };
+}
+
+/** Remove a locally uploaded file. No-ops for external URLs (e.g. seed data). */
+export async function deleteUploadedFile(url: string): Promise<void> {
+  if (!url.startsWith("/uploads/")) return;
+  await unlink(path.join(process.cwd(), "public", url)).catch(() => {});
 }

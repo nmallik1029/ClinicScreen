@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Tabs, Input, Select, Label, Button, StatusBadge } from "@/components/ui";
-import { createScreen, updateScreen } from "../actions";
+import { createScreen, updateScreen, createRefreshCommand } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
+import { deviceStatus } from "@/lib/status";
 
 export default async function ScreensPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
@@ -14,7 +15,11 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
     prisma.device.findMany({
       where: { practiceId: practice.id },
       orderBy: { name: "asc" },
-      include: { location: true, assignedPlaylist: true },
+      include: {
+        location: true,
+        assignedPlaylist: true,
+        commands: { orderBy: { createdAt: "desc" }, take: 3 },
+      },
     }),
     prisma.location.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
     prisma.playlist.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
@@ -43,12 +48,28 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <StatusBadge status={d.status} />
+                  <StatusBadge status={deviceStatus(d.lastSeenAt)} />
+                  <form action={createRefreshCommand.bind(null, practice.id, d.id)}>
+                    <Button type="submit" variant="ghost">
+                      Refresh screen
+                    </Button>
+                  </form>
                   <Link href={`/player/${d.id}`} target="_blank" className="text-xs text-blue-700">
                     Open player ↗
                   </Link>
                 </div>
               </div>
+
+              {d.commands.length > 0 && (
+                <ul className="mb-3 space-y-0.5 text-xs text-slate-500">
+                  {d.commands.map((c) => (
+                    <li key={c.id}>
+                      {c.commandType} · {c.status} · sent {c.createdAt.toLocaleTimeString()}
+                      {c.completedAt ? ` · done ${c.completedAt.toLocaleTimeString()}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               <form action={updateScreen.bind(null, practice.id, d.id)} className="grid gap-2 sm:grid-cols-4">
                 <div>

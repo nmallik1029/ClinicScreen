@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Tabs } from "@/components/ui";
 import { requirePracticeAccess } from "@/lib/auth";
+import { deviceStatus } from "@/lib/status";
 
 export default async function OverviewPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
@@ -14,9 +15,11 @@ export default async function OverviewPage({ params }: { params: { practiceId: s
   });
   if (!practice) notFound();
 
-  const onlineCount = await prisma.device.count({
-    where: { practiceId: practice.id, status: "ONLINE" },
+  const devices = await prisma.device.findMany({
+    where: { practiceId: practice.id },
+    select: { lastSeenAt: true },
   });
+  const onlineCount = devices.filter((d) => deviceStatus(d.lastSeenAt) === "ONLINE").length;
 
   const stats = [
     { label: "Screens", value: practice._count.devices, href: "screens" },

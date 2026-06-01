@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePracticeAccess } from "@/lib/auth";
-import { saveMediaFile, type MediaFormState } from "@/lib/upload";
+import { saveMediaFile, deleteUploadedFile, type MediaFormState } from "@/lib/upload";
 
 const base = (practiceId: string) => `/practices/${practiceId}`;
 
@@ -82,6 +82,41 @@ export async function createMedia(
   return { ok: true };
 }
 
+export async function deleteMedia(practiceId: string, mediaId: string) {
+  await requirePracticeAccess(practiceId);
+  const media = await prisma.media.findUnique({ where: { id: mediaId } });
+  if (!media || media.practiceId !== practiceId) return;
+  await prisma.playlistItem.deleteMany({ where: { mediaId } });
+  await prisma.media.delete({ where: { id: mediaId } });
+  await deleteUploadedFile(media.url);
+  revalidatePath(`${base(practiceId)}/media`);
+}
+
+export async function replaceMedia(
+  practiceId: string,
+  mediaId: string,
+  _prevState: MediaFormState,
+  formData: FormData
+): Promise<MediaFormState> {
+  await requirePracticeAccess(practiceId);
+  const media = await prisma.media.findUnique({ where: { id: mediaId } });
+  if (!media || media.practiceId !== practiceId) return { error: "Media not found." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { error: "Please choose a file to upload." };
+  const saved = await saveMediaFile(practiceId, file);
+  if (!saved.ok) return { error: saved.error };
+
+  const oldUrl = media.url;
+  await prisma.media.update({
+    where: { id: mediaId },
+    data: { type: saved.type, url: saved.url },
+  });
+  await deleteUploadedFile(oldUrl);
+  revalidatePath(`${base(practiceId)}/media`);
+  return { ok: true };
+}
+
 // --- Playlists ---
 export async function createPlaylist(practiceId: string, formData: FormData) {
   await requirePracticeAccess(practiceId);
@@ -116,4 +151,18 @@ export async function removePlaylistItem(practiceId: string, playlistId: string,
     )
   );
   revalidatePath(`${base(practiceId)}/playlists/${playlistId}`);
+}
+
+// --- Screen commands ---
+export async function createRefreshCommand(practiceId: string, deviceId: string) {
+  await requirePracticeAccess(practiceId);
+  const device = await prisma.device.findUnique({
+    where: { id: deviceId },
+    select: { practiceId: true },
+  });
+  if (!device || device.practiceId !== practiceId) return;
+  await prisma.deviceCommand.create({
+    data: { deviceId, commandType: "REFRESH", status: "PENDING" },
+  });
+  revalidatePath(`${base(practiceId)}/screens`);
 }

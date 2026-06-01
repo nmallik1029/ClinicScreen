@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Player from "./Player";
+import DeviceAgent from "./DeviceAgent";
 
 export default async function PlayerPage({ params }: { params: { deviceId: string } }) {
   const device = await prisma.device.findUnique({
@@ -24,6 +25,7 @@ export default async function PlayerPage({ params }: { params: { deviceId: strin
   if (items.length === 0) {
     return (
       <Screen>
+        <DeviceAgent deviceId={device.id} />
         <p className="text-2xl font-medium">No playlist assigned</p>
         <p className="mt-2 text-slate-400">{device.name}</p>
       </Screen>
@@ -38,7 +40,12 @@ export default async function PlayerPage({ params }: { params: { deviceId: strin
     duration: it.durationOverrideSeconds ?? it.media.durationSeconds ?? 10,
   }));
 
-  return <Player screenName={device.name} items={playerItems} />;
+  return (
+    <>
+      <DeviceAgent deviceId={device.id} />
+      <Player screenName={device.name} items={playerItems} />
+    </>
+  );
 }
 
 function Screen({ children }: { children: React.ReactNode }) {

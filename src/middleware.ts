@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Public routes: the test player (device-token auth comes later), the login
 // page, and the OAuth callback/login routes. Everything else needs a session.
-const PUBLIC = [/^\/player(\/|$)/, /^\/login$/, /^\/auth(\/|$)/];
+const PUBLIC = [/^\/player(\/|$)/, /^\/api\/player(\/|$)/, /^\/login$/, /^\/auth(\/|$)/];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

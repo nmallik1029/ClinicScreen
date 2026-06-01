@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, StatusBadge } from "@/components/ui";
 import { requireSuperadmin } from "@/lib/auth";
+import { deviceStatus } from "@/lib/status";
 
 export default async function PracticeDetailPage({ params }: { params: { id: string } }) {
   await requireSuperadmin();
@@ -54,7 +55,7 @@ export default async function PracticeDetailPage({ params }: { params: { id: str
                     {d.assignedPlaylist ? `· ${d.assignedPlaylist.name}` : "· no playlist"}
                   </span>
                 </span>
-                <StatusBadge status={d.status} />
+                <StatusBadge status={deviceStatus(d.lastSeenAt)} />
               </li>
             ))}
             {practice.devices.length === 0 && <li className="text-slate-500">None</li>}

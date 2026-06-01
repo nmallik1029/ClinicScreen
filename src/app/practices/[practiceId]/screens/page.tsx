@@ -1,0 +1,122 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { PageHeader, Card, Tabs, Input, Select, Label, Button, StatusBadge } from "@/components/ui";
+import { createScreen, updateScreen } from "../actions";
+import { requirePracticeAccess } from "@/lib/auth";
+
+export default async function ScreensPage({ params }: { params: { practiceId: string } }) {
+  await requirePracticeAccess(params.practiceId);
+  const practice = await prisma.practice.findUnique({ where: { id: params.practiceId } });
+  if (!practice) notFound();
+
+  const [devices, locations, playlists] = await Promise.all([
+    prisma.device.findMany({
+      where: { practiceId: practice.id },
+      orderBy: { name: "asc" },
+      include: { location: true, assignedPlaylist: true },
+    }),
+    prisma.location.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
+    prisma.playlist.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
+  ]);
+
+  return (
+    <div>
+      <PageHeader title={practice.name} subtitle="Screens" />
+      <Tabs practiceId={practice.id} active="Screens" />
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="space-y-4 md:col-span-2">
+          {devices.length === 0 && (
+            <Card>
+              <p className="text-sm text-slate-500">No screens yet.</p>
+            </Card>
+          )}
+          {devices.map((d) => (
+            <Card key={d.id}>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{d.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {d.location?.name ?? "No location"} · {d.roomType ?? "No room type"}
+                    {d.lastSeenAt ? ` · last seen ${d.lastSeenAt.toLocaleString()}` : " · never seen"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={d.status} />
+                  <Link href={`/player/${d.id}`} target="_blank" className="text-xs text-blue-700">
+                    Open player ↗
+                  </Link>
+                </div>
+              </div>
+
+              <form action={updateScreen.bind(null, practice.id, d.id)} className="grid gap-2 sm:grid-cols-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input name="name" defaultValue={d.name} />
+                </div>
+                <div>
+                  <Label>Room type</Label>
+                  <Input name="roomType" defaultValue={d.roomType ?? ""} placeholder="e.g. Waiting Room" />
+                </div>
+                <div>
+                  <Label>Location</Label>
+                  <Select name="locationId" defaultValue={d.locationId ?? ""}>
+                    <option value="">None</option>
+                    {locations.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <Label>Playlist</Label>
+                  <Select name="assignedPlaylistId" defaultValue={d.assignedPlaylistId ?? ""}>
+                    <option value="">None</option>
+                    {playlists.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="sm:col-span-4">
+                  <Button type="submit" variant="ghost">
+                    Save changes
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <h2 className="mb-3 font-medium">Add screen</h2>
+          <form action={createScreen.bind(null, practice.id)} className="space-y-3">
+            <div>
+              <Label>Name</Label>
+              <Input name="name" placeholder="e.g. Waiting Room" required />
+            </div>
+            <div>
+              <Label>Room type (optional)</Label>
+              <Input name="roomType" placeholder="e.g. Exam Room" />
+            </div>
+            <div>
+              <Label>Location (optional)</Label>
+              <Select name="locationId" defaultValue="">
+                <option value="">None</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Button type="submit">Add screen</Button>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}

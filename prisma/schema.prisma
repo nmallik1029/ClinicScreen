@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  OFFICE_ADMIN
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+
+enum MediaType {
+  VIDEO
+  IMAGE
+}
+
+enum CommandType {
+  REFRESH
+}
+
+enum CommandStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  role       Role     @default(OFFICE_ADMIN)
+  practiceId String?
+  practice   Practice? @relation(fields: [practiceId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Practice {
+  id        String   @id @default(cuid())
+  name      String
+  specialty String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  locations Location[]
+  devices   Device[]
+  media     Media[]
+  playlists Playlist[]
+}
+
+model Location {
+  id         String   @id @default(cuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id])
+  name       String
+  address    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  devices Device[]
+}
+
+model Device {
+  id                 String       @id @default(cuid())
+  practiceId         String
+  practice           Practice     @relation(fields: [practiceId], references: [id])
+  locationId         String?
+  location           Location?    @relation(fields: [locationId], references: [id])
+  name               String
+  roomType           String?
+  status             DeviceStatus @default(UNKNOWN)
+  lastSeenAt         DateTime?
+  softwareVersion    String?
+  assignedPlaylistId String?
+  assignedPlaylist   Playlist?    @relation(fields: [assignedPlaylistId], references: [id])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  commands DeviceCommand[]
+}
+
+model Media {
+  id              String    @id @default(cuid())
+  practiceId      String
+  practice        Practice  @relation(fields: [practiceId], references: [id])
+  title           String
+  type            MediaType
+  url             String
+  durationSeconds Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  playlistItems PlaylistItem[]
+}
+
+model Playlist {
+  id         String   @id @default(cuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id])
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items   PlaylistItem[]
+  devices Device[]
+}
+
+model PlaylistItem {
+  id                      String   @id @default(cuid())
+  playlistId              String
+  playlist                Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  mediaId                 String
+  media                   Media    @relation(fields: [mediaId], references: [id])
+  position                Int
+  durationOverrideSeconds Int?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model DeviceCommand {
+  id          String        @id @default(cuid())
+  deviceId    String
+  device      Device        @relation(fields: [deviceId], references: [id])
+  commandType CommandType   @default(REFRESH)
+  status      CommandStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  completedAt DateTime?
+}

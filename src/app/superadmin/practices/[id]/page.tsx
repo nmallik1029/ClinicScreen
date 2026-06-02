@@ -4,8 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, StatusBadge } from "@/components/ui";
 import { requireSuperadmin } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
-import { setUserDisabled } from "@/app/superadmin/actions";
+import { setUserDisabled, deleteAdmin } from "@/app/superadmin/actions";
 import AddAdminForm from "./AddAdminForm";
+import DeleteButton from "@/components/DeleteButton";
 
 export default async function PracticeDetailPage({ params }: { params: { id: string } }) {
   await requireSuperadmin();
@@ -53,14 +54,21 @@ export default async function PracticeDetailPage({ params }: { params: { id: str
                 </p>
               </div>
               {u.role !== "SUPERADMIN" && (
-                <form action={setUserDisabled.bind(null, practice.id, u.id, !u.disabledAt)}>
-                  <button
-                    type="submit"
-                    className={`text-xs ${u.disabledAt ? "text-green-700" : "text-red-600"} hover:underline`}
-                  >
-                    {u.disabledAt ? "Enable" : "Disable"}
-                  </button>
-                </form>
+                <div className="flex items-center gap-3">
+                  <form action={setUserDisabled.bind(null, practice.id, u.id, !u.disabledAt)}>
+                    <button
+                      type="submit"
+                      className={`text-xs ${u.disabledAt ? "text-green-700" : "text-red-600"} hover:underline`}
+                    >
+                      {u.disabledAt ? "Enable" : "Disable"}
+                    </button>
+                  </form>
+                  <DeleteButton
+                    action={deleteAdmin.bind(null, practice.id, u.id)}
+                    confirmText={`Permanently remove ${u.name} (${u.email}) from this practice? Their quickAuth login still exists but loses access.`}
+                    label="Delete"
+                  />
+                </div>
               )}
             </li>
           ))}

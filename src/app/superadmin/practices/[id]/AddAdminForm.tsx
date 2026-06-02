@@ -40,6 +40,11 @@ export default function AddAdminForm({ practiceId }: { practiceId: string }) {
       </div>
 
       {state.error && <p className="sm:col-span-3 text-sm text-red-600">{state.error}</p>}
+      {state.message && (
+        <p className="sm:col-span-3 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+          {state.message}
+        </p>
+      )}
       {state.tempPassword && (
         <div className="sm:col-span-3 rounded border border-green-200 bg-green-50 p-3 text-sm">
           <p className="font-medium text-green-800">Login created.</p>

@@ -4,8 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/session";
 import { quickauth, OAUTH_STATE_COOKIE } from "@/lib/quickauth";
 
-function fail(req: NextRequest) {
-  return NextResponse.redirect(new URL("/unauthorized", req.url));
+// Relative redirect — resolves to the public origin in the browser, avoids the
+// container's internal 0.0.0.0 host.
+function redirectTo(path: string) {
+  return new NextResponse(null, { status: 307, headers: { Location: path } });
+}
+function fail() {
+  return redirectTo("/unauthorized");
 }
 
 // quickAuth redirects here with ?code & ?state after the user authorizes.
@@ -15,7 +20,7 @@ export async function GET(req: NextRequest) {
   const savedState = cookies().get(OAUTH_STATE_COOKIE)?.value;
   cookies().delete(OAUTH_STATE_COOKIE);
 
-  if (!code || !state || !savedState || state !== savedState) return fail(req);
+  if (!code || !state || !savedState || state !== savedState) return fail();
 
   // Exchange the authorization code for an access token (server-to-server).
   const tokenRes = await fetch(`${quickauth.url}/oauth/token`, {
@@ -30,23 +35,23 @@ export async function GET(req: NextRequest) {
       client_secret: quickauth.clientSecret,
     }),
   });
-  if (!tokenRes.ok) return fail(req);
+  if (!tokenRes.ok) return fail();
   const token = (await tokenRes.json()) as { access_token?: string };
-  if (!token.access_token) return fail(req);
+  if (!token.access_token) return fail();
 
   // Fetch the user's profile.
   const infoRes = await fetch(`${quickauth.url}/oauth/userinfo`, {
     headers: { Authorization: `Bearer ${token.access_token}` },
     cache: "no-store",
   });
-  if (!infoRes.ok) return fail(req);
+  if (!infoRes.ok) return fail();
   const info = (await infoRes.json()) as { email?: string };
   const email = info.email?.toLowerCase();
-  if (!email) return fail(req);
+  if (!email) return fail();
 
   // Link to a provisioned ClinicScreen user (carries role + practice).
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return fail(req);
+  if (!user) return fail();
 
   createSession(user.id);
   // Keep the access token briefly so first-login onboarding can change the
@@ -58,5 +63,5 @@ export async function GET(req: NextRequest) {
     path: "/",
     maxAge: 3600,
   });
-  return NextResponse.redirect(new URL("/", req.url));
+  return redirectTo("/");
 }

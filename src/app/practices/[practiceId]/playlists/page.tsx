@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Tabs, Input, Label, Button } from "@/components/ui";
-import { createPlaylist } from "../actions";
+import { createPlaylist, deletePlaylist } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
+import DeleteButton from "@/components/DeleteButton";
 
 export default async function PlaylistsPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
@@ -41,6 +42,10 @@ export default async function PlaylistsPage({ params }: { params: { practiceId: 
                         {p._count.items} items · on {p._count.devices} screens
                       </p>
                     </div>
+                    <DeleteButton
+                      action={deletePlaylist.bind(null, practice.id, p.id)}
+                      confirmText={`Delete "${p.name}"? It will be removed from any screens using it.`}
+                    />
                   </li>
                 ))}
               </ul>

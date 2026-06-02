@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Tabs, Input, Label, Button } from "@/components/ui";
-import { createLocation } from "../actions";
+import { createLocation, deleteLocation } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
+import DeleteButton from "@/components/DeleteButton";
 
 export default async function LocationsPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
@@ -28,11 +29,17 @@ export default async function LocationsPage({ params }: { params: { practiceId: 
             ) : (
               <ul className="divide-y">
                 {locations.map((l) => (
-                  <li key={l.id} className="py-3">
-                    <p className="font-medium">{l.name}</p>
-                    <p className="text-xs text-slate-500">
-                      {l.address ?? "No address"} · {l._count.devices} screens
-                    </p>
+                  <li key={l.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="font-medium">{l.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {l.address ?? "No address"} · {l._count.devices} screens
+                      </p>
+                    </div>
+                    <DeleteButton
+                      action={deleteLocation.bind(null, practice.id, l.id)}
+                      confirmText={`Delete "${l.name}"? Its screens will be left without a location.`}
+                    />
                   </li>
                 ))}
               </ul>

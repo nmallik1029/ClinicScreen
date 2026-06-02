@@ -22,6 +22,8 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/next.config.mjs ./next.config.mjs
+ENV HOSTNAME=0.0.0.0
 EXPOSE 8080
-# Apply DB migrations on boot, then start.
-CMD ["sh", "-c", "npx prisma migrate deploy && npx next start -p 8080"]
+# Start fast so the platform's port check passes. Run `prisma migrate deploy`
+# as a separate one-off against the DB (see DEPLOY.md), not on boot.
+CMD ["sh", "-c", "npx next start -p 8080 -H 0.0.0.0"]

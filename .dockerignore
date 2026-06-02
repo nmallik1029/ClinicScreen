@@ -8,3 +8,5 @@ public/uploads
 npm-debug.log*
 README.md
 DEPLOY.md
+worker.ts
+wrangler.jsonc

@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageHeader, Card, Tabs, Input, Select, Label, Button, StatusBadge } from "@/components/ui";
-import { createScreen, updateScreen, createRefreshCommand, resetDeviceToken } from "../actions";
+import { createScreen, updateScreen, createRefreshCommand, resetDeviceToken, deleteScreen } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
+import DeleteButton from "@/components/DeleteButton";
 import { expireStalePending, RECENT_COMMAND_MS } from "@/lib/commands";
 
 export default async function ScreensPage({ params }: { params: { practiceId: string } }) {
@@ -79,6 +80,10 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
                       Reset link
                     </button>
                   </form>
+                  <DeleteButton
+                    action={deleteScreen.bind(null, practice.id, d.id)}
+                    confirmText={`Delete screen "${d.name}"?`}
+                  />
                 </div>
               </div>
 

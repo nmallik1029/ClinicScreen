@@ -19,6 +19,19 @@ export async function createLocation(practiceId: string, formData: FormData) {
   revalidatePath(`${base(practiceId)}/locations`);
 }
 
+export async function deleteLocation(practiceId: string, locationId: string) {
+  await requirePracticeAccess(practiceId);
+  const loc = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { practiceId: true },
+  });
+  if (!loc || loc.practiceId !== practiceId) return;
+  // Unassign screens from this location, then delete it.
+  await prisma.device.updateMany({ where: { locationId }, data: { locationId: null } });
+  await prisma.location.delete({ where: { id: locationId } });
+  revalidatePath(`${base(practiceId)}/locations`);
+}
+
 // --- Screens (Devices) ---
 export async function createScreen(practiceId: string, formData: FormData) {
   await requirePracticeAccess(practiceId);
@@ -35,6 +48,18 @@ export async function createScreen(practiceId: string, formData: FormData) {
       token: newDeviceToken(),
     },
   });
+  revalidatePath(`${base(practiceId)}/screens`);
+}
+
+export async function deleteScreen(practiceId: string, deviceId: string) {
+  await requirePracticeAccess(practiceId);
+  const device = await prisma.device.findUnique({
+    where: { id: deviceId },
+    select: { practiceId: true },
+  });
+  if (!device || device.practiceId !== practiceId) return;
+  await prisma.deviceCommand.deleteMany({ where: { deviceId } });
+  await prisma.device.delete({ where: { id: deviceId } });
   revalidatePath(`${base(practiceId)}/screens`);
 }
 
@@ -137,6 +162,23 @@ export async function createPlaylist(practiceId: string, formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
   await prisma.playlist.create({ data: { practiceId, name } });
+  revalidatePath(`${base(practiceId)}/playlists`);
+}
+
+export async function deletePlaylist(practiceId: string, playlistId: string) {
+  await requirePracticeAccess(practiceId);
+  const pl = await prisma.playlist.findUnique({
+    where: { id: playlistId },
+    select: { practiceId: true },
+  });
+  if (!pl || pl.practiceId !== practiceId) return;
+  // Unassign from any screens, remove its items, then delete it.
+  await prisma.device.updateMany({
+    where: { assignedPlaylistId: playlistId },
+    data: { assignedPlaylistId: null },
+  });
+  await prisma.playlistItem.deleteMany({ where: { playlistId } });
+  await prisma.playlist.delete({ where: { id: playlistId } });
   revalidatePath(`${base(practiceId)}/playlists`);
 }
 

@@ -1,7 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { destroySession } from "@/lib/session";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   destroySession();
-  return NextResponse.redirect(new URL("/", req.url), { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: "/" } });
 }

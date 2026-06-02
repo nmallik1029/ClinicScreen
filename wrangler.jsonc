@@ -1,0 +1,24 @@
+{
+  // ClinicScreen on Cloudflare Containers. Verify fields against current docs:
+  // https://developers.cloudflare.com/containers/
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clinicscreen-app",
+  "main": "worker.ts",
+  "compatibility_date": "2025-09-01",
+  "containers": [
+    {
+      "class_name": "ClinicScreenContainer",
+      "image": "./Dockerfile",
+      "name": "clinicscreen-app",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "class_name": "ClinicScreenContainer", "name": "CONTAINER" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ClinicScreenContainer"] }]
+  // Secrets (set with `wrangler secret put <NAME>`): DATABASE_URL, SESSION_SECRET,
+  // QUICKAUTH_URL, QUICKAUTH_CLIENT_ID, QUICKAUTH_CLIENT_SECRET, QUICKAUTH_REDIRECT_URI,
+  // QUICKAUTH_PROVISION_SECRET, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+  // R2_BUCKET, R2_PUBLIC_URL.
+}

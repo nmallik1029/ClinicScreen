@@ -48,22 +48,39 @@ export async function addPracticeAdmin(
     cache: "no-store",
     body: JSON.stringify({ email, username, password, name }),
   });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    const map: Record<string, string> = {
-      email_taken: "That email already has a login.",
-      username_taken: "That username is taken.",
-      unauthorized: "Provisioning secret mismatch.",
-    };
-    return { error: map[body.error ?? ""] ?? "Could not create the login. Is quickAuth running?" };
+  if (res.ok) {
+    // Brand-new login created — show the temp password once.
+    await prisma.user.create({ data: { name, email, role: "OFFICE_ADMIN", practiceId } });
+    revalidatePath(`/superadmin/practices/${practiceId}`);
+    return { tempPassword: password, username };
   }
 
-  await prisma.user.create({
-    data: { name, email, role: "OFFICE_ADMIN", practiceId },
-  });
+  const body = (await res.json().catch(() => ({}))) as { error?: string };
+  if (body.error === "email_taken") {
+    // The quickAuth login already exists (e.g. a previously-removed admin).
+    // Re-link it to this practice; they sign in with their existing password.
+    await prisma.user.create({
+      data: { name, email, role: "OFFICE_ADMIN", practiceId, onboardedAt: new Date() },
+    });
+    revalidatePath(`/superadmin/practices/${practiceId}`);
+    return {
+      message: `${email} already had a login — re-linked it to this practice. They sign in with their existing password (reset it in quickAuth if forgotten).`,
+    };
+  }
+  const map: Record<string, string> = {
+    username_taken: "That username is taken.",
+    unauthorized: "Provisioning secret mismatch.",
+  };
+  return { error: map[body.error ?? ""] ?? "Could not create the login. Is quickAuth running?" };
+}
 
+/** Permanently remove an office admin's ClinicScreen access (deletes the User row). */
+export async function deleteAdmin(practiceId: string, userId: string) {
+  await requireSuperadmin();
+  const u = await prisma.user.findUnique({ where: { id: userId } });
+  if (!u || u.practiceId !== practiceId || u.role === "SUPERADMIN") return;
+  await prisma.user.delete({ where: { id: userId } });
   revalidatePath(`/superadmin/practices/${practiceId}`);
-  return { tempPassword: password, username };
 }
 
 export async function setUserDisabled(practiceId: string, userId: string, disabled: boolean) {

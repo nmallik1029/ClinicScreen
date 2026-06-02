@@ -47,23 +47,22 @@ npx tsx scripts/set-client-branding.ts --slug clinicscreen --brandColor "#2563eb
    `R2_PUBLIC_URL`. When set, uploads go to R2; when blank, local disk (dev only).
 
 ## 3. Build & deploy each container
-Each app has a `Dockerfile` that builds the app, runs `prisma migrate deploy` on
-boot, and serves on port **8080**.
+Each app has a `Dockerfile` (builds the app, runs `prisma migrate deploy` on boot,
+serves on port **8080**) plus a `wrangler.jsonc` + `worker.ts` (the Worker that fronts
+the container). **Both image builds + a Postgres runtime smoke test pass locally.**
 
-Example `wrangler.jsonc` (per app) — verify against current docs:
-```jsonc
-{
-  "name": "clinicscreen",
-  "main": "worker.ts",
-  "compatibility_date": "2025-01-01",
-  "containers": [{ "class_name": "AppContainer", "image": "./Dockerfile", "instances": 1 }],
-  "durable_objects": { "bindings": [{ "name": "APP", "class_name": "AppContainer" }] }
-}
+In each repo:
+```bash
+npm i @cloudflare/containers   # the worker.ts dependency
+npm i -g wrangler              # if not already
+# set each secret listed at the bottom of wrangler.jsonc:
+wrangler secret put DATABASE_URL
+wrangler secret put SESSION_SECRET
+# ...etc
+wrangler deploy               # builds the Dockerfile image + deploys the container
 ```
-The Worker (`worker.ts`) forwards all requests to the container instance. Set env
-vars/secrets with `wrangler secret put <NAME>` (DATABASE_URL, SESSION_SECRET,
-QUICKAUTH_* , R2_*, and for quickAuth: PROVISION_SECRET, CLIENT_SECRET_PEPPER,
-APP_URL, RESEND_API_KEY).
+> Cloudflare Containers + wrangler move fast — confirm `wrangler.jsonc`/`worker.ts`
+> field names against current docs (the files note this too).
 
 ## 4. Deploy order (temp `workers.dev` URLs — no domain)
 

@@ -39,7 +39,7 @@ export async function completeOnboarding(
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { preferredName, onboardedAt: new Date() },
+    data: { preferredName, onboardedAt: new Date(), mustChangePassword: false },
   });
   cookies().delete("cs_qa_token");
   redirect("/");

@@ -36,22 +36,40 @@ export async function GET(req: NextRequest) {
     }),
   });
   if (!tokenRes.ok) return fail();
-  const token = (await tokenRes.json()) as { access_token?: string };
+  const token = (await tokenRes.json()) as {
+    access_token?: string;
+    user?: { email?: string; must_change_password?: boolean };
+  };
   if (!token.access_token) return fail();
 
-  // Fetch the user's profile.
-  const infoRes = await fetch(`${quickauth.url}/oauth/userinfo`, {
-    headers: { Authorization: `Bearer ${token.access_token}` },
-    cache: "no-store",
-  });
-  if (!infoRes.ok) return fail();
-  const info = (await infoRes.json()) as { email?: string };
-  const email = info.email?.toLowerCase();
+  // quickAuth now embeds the profile in the token response, so we can skip the
+  // extra /oauth/userinfo round trip. Fall back to it if the field is absent
+  // (e.g. an older quickAuth deploy).
+  let email = token.user?.email?.toLowerCase();
+  let mustChangePassword = token.user?.must_change_password;
+  if (!email) {
+    const infoRes = await fetch(`${quickauth.url}/oauth/userinfo`, {
+      headers: { Authorization: `Bearer ${token.access_token}` },
+      cache: "no-store",
+    });
+    if (!infoRes.ok) return fail();
+    const info = (await infoRes.json()) as { email?: string; must_change_password?: boolean };
+    email = info.email?.toLowerCase();
+    mustChangePassword = info.must_change_password;
+  }
   if (!email) return fail();
 
   // Link to a provisioned ClinicScreen user (carries role + practice).
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return fail();
+
+  // Mirror the IdP's must-change-password flag so we can force a reset screen.
+  if (typeof mustChangePassword === "boolean" && mustChangePassword !== user.mustChangePassword) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { mustChangePassword },
+    });
+  }
 
   createSession(user.id);
   // Keep the access token briefly so first-login onboarding can change the

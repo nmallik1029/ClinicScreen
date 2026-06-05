@@ -1,0 +1,50 @@
+{
+  "name": "clinicscreen-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ClinicScreen admin desktop app (Electron shell over the deployed web app).",
+  "author": "ClinicScreen",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "start:player": "electron . --player",
+    "dev:player": "electron . --player --dev",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win",
+    "dist:player": "electron-builder --win --config electron-builder.player.json"
+  },
+  "build": {
+    "appId": "com.clinicscreen.admin",
+    "productName": "ClinicScreen",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "shared.js",
+      "player.js",
+      "loading.html",
+      "splash.html"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ClinicScreen"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}

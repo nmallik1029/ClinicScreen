@@ -6,6 +6,7 @@ import { requireSuperadmin } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
 import { setUserDisabled, deleteAdmin } from "@/app/superadmin/actions";
 import AddAdminForm from "./AddAdminForm";
+import ResetPasswordButton from "./ResetPasswordButton";
 import DeleteButton from "@/components/DeleteButton";
 
 export default async function PracticeDetailPage({ params }: { params: { id: string } }) {
@@ -39,34 +40,45 @@ export default async function PracticeDetailPage({ params }: { params: { id: str
         <h2 className="mb-3 font-medium">Admins ({practice.users.length})</h2>
         <ul className="divide-y">
           {practice.users.map((u) => (
-            <li key={u.id} className="flex items-center justify-between py-2 text-sm">
-              <div>
-                <p className="font-medium">
-                  {u.preferredName ?? u.name}
-                  {u.disabledAt && (
-                    <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">
-                      Disabled
-                    </span>
-                  )}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {u.email} · {u.role === "SUPERADMIN" ? "Superadmin" : "Office admin"}
-                </p>
+            <li key={u.id} className="py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">
+                    {u.preferredName ?? u.name}
+                    {u.disabledAt && (
+                      <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">
+                        Disabled
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {u.email} · {u.role === "SUPERADMIN" ? "Superadmin" : "Office admin"}
+                  </p>
+                </div>
+                {u.role !== "SUPERADMIN" && (
+                  <div className="flex items-center gap-3">
+                    <form action={setUserDisabled.bind(null, practice.id, u.id, !u.disabledAt)}>
+                      <button
+                        type="submit"
+                        className={`text-xs ${u.disabledAt ? "text-green-700" : "text-red-600"} hover:underline`}
+                      >
+                        {u.disabledAt ? "Enable" : "Disable"}
+                      </button>
+                    </form>
+                    <DeleteButton
+                      action={deleteAdmin.bind(null, practice.id, u.id)}
+                      confirmText={`Permanently remove ${u.name} (${u.email}) from this practice? Their quickAuth login still exists but loses access.`}
+                      label="Delete"
+                    />
+                  </div>
+                )}
               </div>
               {u.role !== "SUPERADMIN" && (
-                <div className="flex items-center gap-3">
-                  <form action={setUserDisabled.bind(null, practice.id, u.id, !u.disabledAt)}>
-                    <button
-                      type="submit"
-                      className={`text-xs ${u.disabledAt ? "text-green-700" : "text-red-600"} hover:underline`}
-                    >
-                      {u.disabledAt ? "Enable" : "Disable"}
-                    </button>
-                  </form>
-                  <DeleteButton
-                    action={deleteAdmin.bind(null, practice.id, u.id)}
-                    confirmText={`Permanently remove ${u.name} (${u.email}) from this practice? Their quickAuth login still exists but loses access.`}
-                    label="Delete"
+                <div className="mt-1.5">
+                  <ResetPasswordButton
+                    practiceId={practice.id}
+                    userId={u.id}
+                    userName={u.preferredName ?? u.name}
                   />
                 </div>
               )}

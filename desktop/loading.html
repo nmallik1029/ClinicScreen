@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Loading ClinicScreen</title>
+    <style>
+      :root {
+        /* Matches the ClinicScreen login background (quickAuth client bgColor). */
+        --bg: #0b1e3b;
+        --accent: #2563eb;
+        --text: #f4f4f5;
+        --muted: #9ca3af;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+        overflow: hidden;
+      }
+      .wrap {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 22px;
+        text-align: center;
+        padding: 24px;
+      }
+      .brand {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--accent);
+      }
+      .spinner {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.12);
+        border-top-color: var(--accent);
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+      }
+      .sub {
+        font-size: 13.5px;
+        color: var(--muted);
+        margin: 0;
+        min-height: 18px;
+        transition: opacity 0.4s ease;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner { animation-duration: 1.6s; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="brand">ClinicScreen</div>
+      <div class="spinner" role="status" aria-label="Loading"></div>
+      <h1 id="title">Getting things ready for you</h1>
+      <p class="sub" id="sub">Just a moment…</p>
+    </div>
+    <script>
+      // Two modes: signing in vs signing out. The main process calls window.__setMode
+      // before showing the overlay.
+      const MODES = {
+        login: {
+          title: "Getting things ready for you",
+          messages: [
+            "Just a moment…",
+            "Connecting securely…",
+            "Signing you in…",
+            "Loading your workspace…",
+            "Almost there…",
+          ],
+        },
+        logout: {
+          title: "Logging you out",
+          messages: [
+            "Just a moment…",
+            "Clearing your session…",
+            "Securing your account…",
+            "See you soon…",
+          ],
+        },
+      };
+
+      const titleEl = document.getElementById("title");
+      const subEl = document.getElementById("sub");
+      let messages = MODES.login.messages;
+      let i = 0;
+
+      window.__setMode = function (mode) {
+        const m = MODES[mode] || MODES.login;
+        titleEl.textContent = m.title;
+        messages = m.messages;
+        i = 0;
+        subEl.textContent = messages[0];
+      };
+
+      // Gently cycle the sub-messages while the transition runs.
+      setInterval(() => {
+        subEl.style.opacity = "0";
+        setTimeout(() => {
+          i = (i + 1) % messages.length;
+          subEl.textContent = messages[i];
+          subEl.style.opacity = "1";
+        }, 400);
+      }, 2200);
+    </script>
+  </body>
+</html>

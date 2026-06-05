@@ -7,18 +7,29 @@ import MediaItemActions from "./MediaItemActions";
 
 export default async function MediaPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
-  const practice = await prisma.practice.findUnique({ where: { id: params.practiceId } });
+  const practice = await prisma.practice.findUnique({
+    where: { id: params.practiceId },
+    include: { _count: { select: { devices: true, locations: true, playlists: true } } },
+  });
   if (!practice) notFound();
 
   const media = await prisma.media.findMany({
     where: { practiceId: practice.id },
     orderBy: { createdAt: "desc" },
   });
+  const videoCount = media.filter((m) => m.type === "VIDEO").length;
+  const imageCount = media.filter((m) => m.type === "IMAGE").length;
+  const metrics = {
+    Screens: { value: practice._count.devices },
+    Locations: { value: practice._count.locations },
+    Media: { value: media.length, note: `${videoCount} video, ${imageCount} image` },
+    Playlists: { value: practice._count.playlists },
+  };
 
   return (
-    <div>
+    <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Media" />
-      <Tabs practiceId={practice.id} active="Media" />
+      <Tabs practiceId={practice.id} active="Media" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">

@@ -9,13 +9,17 @@
     "lint": "next lint",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "create-superadmin": "ts-node scripts/create-superadmin.ts",
+    "list-superadmins": "ts-node scripts/list-superadmins.ts",
+    "delete-superadmin": "ts-node scripts/delete-superadmin.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1058.0",
+    "@aws-sdk/s3-request-presigner": "^3.1058.0",
     "@cloudflare/containers": "^0.3.6",
     "@prisma/client": "^5.22.0",
     "next": "14.2.5",

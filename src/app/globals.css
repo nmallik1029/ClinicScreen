@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Always reserve the scrollbar gutter so centered pages don't shift sideways
+   between a short page (no scrollbar) and a tall one (e.g. Screens). */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   @apply bg-slate-50 text-slate-900;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .practice-page {
+    animation: practice-page-enter 260ms ease-out both;
+  }
+
+  .soft-enter {
+    animation: soft-enter 320ms ease-out both;
+  }
+
+  .soft-enter-delay-1 {
+    animation-delay: 70ms;
+  }
+
+  .soft-enter-delay-2 {
+    animation-delay: 120ms;
+  }
+}
+
+@keyframes practice-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

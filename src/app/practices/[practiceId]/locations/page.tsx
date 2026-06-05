@@ -7,7 +7,10 @@ import DeleteButton from "@/components/DeleteButton";
 
 export default async function LocationsPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
-  const practice = await prisma.practice.findUnique({ where: { id: params.practiceId } });
+  const practice = await prisma.practice.findUnique({
+    where: { id: params.practiceId },
+    include: { _count: { select: { devices: true, locations: true, media: true, playlists: true } } },
+  });
   if (!practice) notFound();
 
   const locations = await prisma.location.findMany({
@@ -15,11 +18,18 @@ export default async function LocationsPage({ params }: { params: { practiceId: 
     orderBy: { name: "asc" },
     include: { _count: { select: { devices: true } } },
   });
+  const activeLocations = locations.filter((l) => l._count.devices > 0).length;
+  const metrics = {
+    Screens: { value: practice._count.devices },
+    Locations: { value: locations.length, note: `${activeLocations} with screens` },
+    Media: { value: practice._count.media },
+    Playlists: { value: practice._count.playlists },
+  };
 
   return (
-    <div>
+    <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Locations" />
-      <Tabs practiceId={practice.id} active="Locations" />
+      <Tabs practiceId={practice.id} active="Locations" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">

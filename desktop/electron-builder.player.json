@@ -1,0 +1,30 @@
+{
+  "appId": "com.clinicscreen.player",
+  "productName": "ClinicScreen Player",
+  "directories": {
+    "output": "dist-player",
+    "buildResources": "assets"
+  },
+  "files": [
+    "main.js",
+    "preload.js",
+    "shared.js",
+    "player.js",
+    "loading.html",
+    "splash.html"
+  ],
+  "extraMetadata": {
+    "csTarget": "player"
+  },
+  "win": {
+    "target": ["nsis"]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "ClinicScreen Player"
+  }
+}

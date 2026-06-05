@@ -19,13 +19,38 @@ export default function DeviceAgent({ deviceId, token }: { deviceId: string; tok
     const base = `/api/player/${deviceId}`;
     const q = `?t=${encodeURIComponent(token)}`;
 
-    const beat = () => fetch(`${base}/heartbeat${q}`, { method: "POST" }).catch(() => {});
+    // The screen was deleted or its link reset while we were playing — the token
+    // no longer authenticates. Drop our identity and go back to enrollment so the
+    // TV shows a fresh pairing code on its own.
+    const reenroll = () => {
+      if (!active) return;
+      active = false;
+      try {
+        localStorage.removeItem("cs_device");
+      } catch {
+        /* ignore */
+      }
+      window.location.replace("/enroll");
+    };
+
+    const beat = async () => {
+      try {
+        const res = await fetch(`${base}/heartbeat${q}`, { method: "POST" });
+        if (res.status === 401) reenroll();
+      } catch {
+        /* offline — keep playing cached content */
+      }
+    };
     beat();
     const heartbeat = setInterval(beat, HEARTBEAT_MS);
 
     const poll = async () => {
       try {
         const res = await fetch(`${base}/commands${q}`, { cache: "no-store" });
+        if (res.status === 401) {
+          reenroll();
+          return;
+        }
         if (!res.ok) return;
         const commands: { id: string; commandType: string }[] = await res.json();
         let refreshed = false;

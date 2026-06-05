@@ -24,6 +24,8 @@ async function requireUser(): Promise<User> {
   if (!user) redirect("/login");
   // Office admins must complete first-login onboarding before using the app.
   if (user.role === "OFFICE_ADMIN" && !user.onboardedAt) redirect("/onboarding");
+  // Anyone whose password was reset must set a new one before continuing.
+  if (user.mustChangePassword) redirect("/change-password");
   return user;
 }
 

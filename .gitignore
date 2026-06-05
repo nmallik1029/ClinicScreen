@@ -12,3 +12,9 @@ next-env.d.ts
 
 # Locally uploaded media files
 /public/uploads/
+
+# Electron desktop app build artifacts
+/desktop/node_modules/
+/desktop/dist/
+/desktop/dist-player/
+/desktop/.ecache/

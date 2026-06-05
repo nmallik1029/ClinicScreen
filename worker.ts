@@ -58,4 +58,14 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     return getContainer(env.CONTAINER).fetch(request);
   },
+  // Cron-driven keep-warm: pokes the container so it never scales to zero and the
+  // first real login of the day doesn't pay a multi-second cold start.
+  async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
+    ctx.waitUntil(
+      getContainer(env.CONTAINER)
+        .fetch(new Request("https://container.internal/login"))
+        .then(() => undefined)
+        .catch(() => undefined),
+    );
+  },
 };

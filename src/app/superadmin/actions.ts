@@ -74,6 +74,41 @@ export async function addPracticeAdmin(
   return { error: map[body.error ?? ""] ?? "Could not create the login. Is quickAuth running?" };
 }
 
+export type ResetState = { error?: string; tempPassword?: string };
+
+/** Reset an office admin's password to a temp value (they set their own on next login). */
+export async function resetAdminPassword(
+  practiceId: string,
+  userId: string,
+  _prev: ResetState,
+  _formData: FormData
+): Promise<ResetState> {
+  await requireSuperadmin();
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target || target.practiceId !== practiceId || target.role === "SUPERADMIN") {
+    return { error: "User not found." };
+  }
+  if (!quickauth.provisionSecret) return { error: "Provisioning is not configured (missing secret)." };
+
+  const password = tempPassword();
+  const res = await fetch(`${quickauth.url}/api/admin-reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-provision-secret": quickauth.provisionSecret },
+    cache: "no-store",
+    body: JSON.stringify({ email: target.email, password }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    if (body.error === "not_found") return { error: "This user has no quickAuth login to reset." };
+    return { error: "Could not reset the password. Is quickAuth reachable?" };
+  }
+
+  // Mirror the flag so they're sent to the reset screen on next login.
+  await prisma.user.update({ where: { id: userId }, data: { mustChangePassword: true } });
+  revalidatePath(`/superadmin/practices/${practiceId}`);
+  return { tempPassword: password };
+}
+
 /** Permanently remove an office admin's ClinicScreen access (deletes the User row). */
 export async function deleteAdmin(practiceId: string, userId: string) {
   await requireSuperadmin();

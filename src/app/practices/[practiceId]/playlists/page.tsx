@@ -8,7 +8,10 @@ import DeleteButton from "@/components/DeleteButton";
 
 export default async function PlaylistsPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
-  const practice = await prisma.practice.findUnique({ where: { id: params.practiceId } });
+  const practice = await prisma.practice.findUnique({
+    where: { id: params.practiceId },
+    include: { _count: { select: { devices: true, locations: true, media: true } } },
+  });
   if (!practice) notFound();
 
   const playlists = await prisma.playlist.findMany({
@@ -16,11 +19,19 @@ export default async function PlaylistsPage({ params }: { params: { practiceId: 
     orderBy: { name: "asc" },
     include: { _count: { select: { items: true, devices: true } } },
   });
+  const readyPlaylists = playlists.filter((p) => p._count.items > 0).length;
+  const assignedPlaylists = playlists.filter((p) => p._count.devices > 0).length;
+  const metrics = {
+    Screens: { value: practice._count.devices },
+    Locations: { value: practice._count.locations },
+    Media: { value: practice._count.media },
+    Playlists: { value: playlists.length, note: `${readyPlaylists} ready, ${assignedPlaylists} assigned` },
+  };
 
   return (
-    <div>
+    <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Playlists" />
-      <Tabs practiceId={practice.id} active="Playlists" />
+      <Tabs practiceId={practice.id} active="Playlists" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">

@@ -42,6 +42,7 @@ model User {
   practiceId String?
   practice   Practice? @relation(fields: [practiceId], references: [id])
   preferredName String?
+  mustChangePassword Boolean @default(false)
   onboardedAt   DateTime?
   disabledAt        DateTime?
   sessionsValidFrom DateTime?
@@ -141,4 +142,21 @@ model DeviceCommand {
   status      CommandStatus @default(PENDING)
   createdAt   DateTime      @default(now())
   completedAt DateTime?
+}
+
+// A short-lived pairing request started by a player device. The device shows the
+// `code` on its screen; an admin enters it in the panel to bind it to a Screen
+// (Device). `secretHash` is the hash of a machine-only secret so only the device
+// that started the enrollment can poll for the resulting token.
+model PendingEnrollment {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  secretHash String
+  deviceName String?
+  status     String    @default("PENDING") // PENDING | CLAIMED
+  deviceId   String? // the Screen created on claim
+  practiceId String? // the practice that claimed it
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  claimedAt  DateTime?
 }

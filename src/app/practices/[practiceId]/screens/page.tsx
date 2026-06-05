@@ -7,6 +7,7 @@ import { requirePracticeAccess } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
 import DeleteButton from "@/components/DeleteButton";
 import { expireStalePending, RECENT_COMMAND_MS } from "@/lib/commands";
+import AddScreenByCode from "./AddScreenByCode";
 
 export default async function ScreensPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
@@ -32,11 +33,19 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
     prisma.location.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
     prisma.playlist.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
   ]);
+  const onlineCount = devices.filter((d) => deviceStatus(d.lastSeenAt) === "ONLINE").length;
+  const unassignedCount = devices.filter((d) => !d.assignedPlaylistId).length;
+  const metrics = {
+    Overview: { value: `${onlineCount}/${devices.length}`, note: "screens online" },
+    Screens: { value: devices.length, note: `${unassignedCount} need playlists` },
+    Locations: { value: locations.length },
+    Playlists: { value: playlists.length },
+  };
 
   return (
-    <div>
+    <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Screens" />
-      <Tabs practiceId={practice.id} active="Screens" />
+      <Tabs practiceId={practice.id} active="Screens" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="space-y-4 md:col-span-2">
@@ -139,8 +148,23 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
           ))}
         </div>
 
+        <div className="space-y-4">
         <Card>
-          <h2 className="mb-3 font-medium">Add screen</h2>
+          <h2 className="mb-1 font-medium">Pair a screen</h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Set up a TV: open the ClinicScreen Player app on its PC and enter the code it shows.
+          </p>
+          <AddScreenByCode
+            practiceId={practice.id}
+            locations={locations.map((l) => ({ id: l.id, name: l.name }))}
+          />
+        </Card>
+
+        <Card>
+          <h2 className="mb-1 font-medium">Add screen manually</h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Creates a screen + player link without a device present.
+          </p>
           <form action={createScreen.bind(null, practice.id)} className="space-y-3">
             <div>
               <Label>Name</Label>
@@ -164,6 +188,7 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
             <Button type="submit">Add screen</Button>
           </form>
         </Card>
+        </div>
       </div>
     </div>
   );

@@ -16,7 +16,9 @@
   "durable_objects": {
     "bindings": [{ "class_name": "ClinicScreenContainer", "name": "CONTAINER" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ClinicScreenContainer"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ClinicScreenContainer"] }],
+  // Keep the container warm (sleepAfter is 1h) so users never hit a cold start.
+  "triggers": { "crons": ["*/30 * * * *"] }
   // Secrets (set with `wrangler secret put <NAME>`): DATABASE_URL, SESSION_SECRET,
   // QUICKAUTH_URL, QUICKAUTH_CLIENT_ID, QUICKAUTH_CLIENT_SECRET, QUICKAUTH_REDIRECT_URI,
   // QUICKAUTH_PROVISION_SECRET, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,

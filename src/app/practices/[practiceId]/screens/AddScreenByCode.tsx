@@ -9,7 +9,7 @@ type LocationOption = { id: string; name: string };
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending} data-tour="pair-submit">
       {pending ? "Pairing…" : "Pair screen"}
     </Button>
   );
@@ -36,6 +36,7 @@ export default function AddScreenByCode({
           autoCapitalize="characters"
           required
           className="font-mono uppercase tracking-widest"
+          data-tour="pair-code"
         />
         <p className="mt-1 text-xs text-slate-500">
           Shown on the screen when the ClinicScreen Player app starts up.
@@ -43,7 +44,7 @@ export default function AddScreenByCode({
       </div>
       <div>
         <Label>Screen name</Label>
-        <Input name="name" placeholder="e.g. Waiting Room" required />
+        <Input name="name" placeholder="e.g. Waiting Room" required data-tour="pair-name" />
       </div>
       <div>
         <Label>Room type (optional)</Label>

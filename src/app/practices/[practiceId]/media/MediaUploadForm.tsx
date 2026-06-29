@@ -92,10 +92,10 @@ export default function MediaUploadForm({ practiceId }: { practiceId: string }) 
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="space-y-3">
+    <form ref={formRef} onSubmit={onSubmit} className="space-y-3" data-tour="media-form">
       <div>
         <Label>Title</Label>
-        <Input name="title" placeholder="e.g. Blood Pressure Basics" required />
+        <Input name="title" placeholder="e.g. Blood Pressure Basics" required data-tour="media-title" />
       </div>
       <div>
         <Label>File</Label>
@@ -105,6 +105,7 @@ export default function MediaUploadForm({ practiceId }: { practiceId: string }) 
           required
           accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,image/jpeg,image/png,image/webp,video/mp4,video/webm"
           className="block w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-blue-700 hover:file:bg-blue-100"
+          data-tour="media-file"
         />
         <p className="mt-1 text-xs text-slate-400">
           Images: jpg, png, webp (max 10 MB). Videos: mp4, webm (max 100 MB).
@@ -129,7 +130,9 @@ export default function MediaUploadForm({ practiceId }: { practiceId: string }) 
           <p className="mt-1 text-xs text-slate-500">Uploading… {progress}%</p>
         </div>
       ) : (
-        <Button type="submit">Upload media</Button>
+        <Button type="submit" data-tour="media-submit">
+          Upload media
+        </Button>
       )}
     </form>
   );

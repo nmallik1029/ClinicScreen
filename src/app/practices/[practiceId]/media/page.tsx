@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Tabs } from "@/components/ui";
+import { PageHeader, Card } from "@/components/ui";
 import { requirePracticeAccess } from "@/lib/auth";
 import MediaUploadForm from "./MediaUploadForm";
 import MediaItemActions from "./MediaItemActions";
@@ -17,19 +17,9 @@ export default async function MediaPage({ params }: { params: { practiceId: stri
     where: { practiceId: practice.id },
     orderBy: { createdAt: "desc" },
   });
-  const videoCount = media.filter((m) => m.type === "VIDEO").length;
-  const imageCount = media.filter((m) => m.type === "IMAGE").length;
-  const metrics = {
-    Screens: { value: practice._count.devices },
-    Locations: { value: practice._count.locations },
-    Media: { value: media.length, note: `${videoCount} video, ${imageCount} image` },
-    Playlists: { value: practice._count.playlists },
-  };
-
   return (
     <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Media" />
-      <Tabs practiceId={practice.id} active="Media" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">

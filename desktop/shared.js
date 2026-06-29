@@ -1,5 +1,5 @@
 // Config + shared helpers for the Manager and Player builds.
-const { BrowserWindow } = require("electron");
+const { app, BrowserWindow } = require("electron");
 const path = require("path");
 
 // The deployed app the shells point at. Override at launch with CLINICSCREEN_URL=…
@@ -7,6 +7,13 @@ const path = require("path");
 const APP_URL = process.env.CLINICSCREEN_URL || "https://clinicscreen-app.nmallik1029.workers.dev";
 const AUTH_URL = process.env.QUICKAUTH_URL || "https://clinicscreen-auth.nmallik1029.workers.dev";
 const isDev = process.argv.includes("--dev");
+const APP_ICON_PATH = appIconPath();
+
+function appIconPath() {
+  return app && app.isPackaged
+    ? path.join(process.resourcesPath, "icon.png")
+    : path.join(__dirname, "assets", "icon.png");
+}
 
 // Origins kept inside the app window: the app itself and its OAuth identity
 // provider. Everything else is an external link → system browser.
@@ -56,6 +63,7 @@ function attachStartupSplash(targetWindow) {
     alwaysOnTop: true,
     skipTaskbar: true,
     show: false,
+    icon: APP_ICON_PATH,
     backgroundColor: "#ffffff",
     webPreferences: { contextIsolation: true, sandbox: true },
   });
@@ -83,6 +91,7 @@ function attachStartupSplash(targetWindow) {
 module.exports = {
   APP_URL,
   AUTH_URL,
+  APP_ICON_PATH,
   isDev,
   ALLOWED_HOSTS,
   APP_HOST,

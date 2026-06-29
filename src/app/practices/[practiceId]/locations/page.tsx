@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Tabs, Input, Label, Button } from "@/components/ui";
+import { PageHeader, Card, Input, Label, Button } from "@/components/ui";
 import { createLocation, deleteLocation } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import DeleteButton from "@/components/DeleteButton";
@@ -18,18 +18,9 @@ export default async function LocationsPage({ params }: { params: { practiceId: 
     orderBy: { name: "asc" },
     include: { _count: { select: { devices: true } } },
   });
-  const activeLocations = locations.filter((l) => l._count.devices > 0).length;
-  const metrics = {
-    Screens: { value: practice._count.devices },
-    Locations: { value: locations.length, note: `${activeLocations} with screens` },
-    Media: { value: practice._count.media },
-    Playlists: { value: practice._count.playlists },
-  };
-
   return (
     <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Locations" />
-      <Tabs practiceId={practice.id} active="Locations" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">
@@ -57,18 +48,20 @@ export default async function LocationsPage({ params }: { params: { practiceId: 
           </Card>
         </div>
 
-        <Card>
+        <Card data-tour="locations-form">
           <h2 className="mb-3 font-medium">Add location</h2>
           <form action={createLocation.bind(null, practice.id)} className="space-y-3">
             <div>
               <Label>Name</Label>
-              <Input name="name" placeholder="e.g. Main Office" required />
+              <Input name="name" placeholder="e.g. Main Office" required data-tour="location-name" />
             </div>
             <div>
               <Label>Address (optional)</Label>
               <Input name="address" placeholder="123 Heart St" />
             </div>
-            <Button type="submit">Add location</Button>
+            <Button type="submit" data-tour="location-submit">
+              Add location
+            </Button>
           </form>
         </Card>
       </div>

@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth";
+import AppHeader from "@/components/AppHeader";
+import ThemeToggle from "@/components/ThemeToggle";
+import Walkthrough from "@/components/Walkthrough";
 import "./globals.css";
+
+// Applies the saved (or system) theme before first paint to avoid a flash of
+// the wrong mode. Kept inline + minimal because it must run before hydration.
+const noFlashTheme = `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "ClinicScreen",
@@ -15,51 +22,26 @@ const roleLabel: Record<string, string> = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  const headerUser = user
+    ? {
+        name: user.name,
+        roleLabel: roleLabel[user.role] ?? user.role,
+        isSuperadmin: user.role === "SUPERADMIN",
+      }
+    : null;
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: noFlashTheme }} />
+      </head>
       <body>
-        <header className="border-b bg-white">
-          <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3">
-            <Link href="/" className="text-lg font-semibold text-blue-700">
-              ClinicScreen
-            </Link>
-            <nav className="flex gap-4 text-sm text-slate-600">
-              {user?.role === "SUPERADMIN" && (
-                <Link href="/superadmin" className="hover:text-slate-900">
-                  Superadmin
-                </Link>
-              )}
-              {user?.practiceId && (
-                <Link href={`/practices/${user.practiceId}`} className="hover:text-slate-900">
-                  My practice
-                </Link>
-              )}
-            </nav>
-            <div className="ml-auto flex items-center gap-3 text-sm">
-              {user ? (
-                <>
-                  <span className="text-slate-500">
-                    {user.name} · {roleLabel[user.role] ?? user.role}
-                  </span>
-                  <form action="/auth/logout" method="post">
-                    <button className="rounded border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50">
-                      Sign out
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  className="rounded bg-blue-600 px-3 py-1.5 font-medium text-white hover:bg-blue-700"
-                >
-                  Sign in
-                </Link>
-              )}
-            </div>
-          </div>
-        </header>
-        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <AppHeader user={headerUser} />
+        <main className="w-full px-6 py-8">{children}</main>
+        <ThemeToggle />
+        <Suspense fallback={null}>
+          <Walkthrough />
+        </Suspense>
       </body>
     </html>
   );

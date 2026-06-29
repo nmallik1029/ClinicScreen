@@ -6,7 +6,7 @@
 // display awake, auto-starts on login, and self-heals on network blips.
 
 const { app, BrowserWindow, Menu, shell, powerSaveBlocker, globalShortcut } = require("electron");
-const { APP_URL, isDev, isInternal, attachStartupSplash } = require("./shared");
+const { APP_URL, isDev, isInternal, APP_ICON_PATH, attachStartupSplash } = require("./shared");
 
 const ENTRY_URL = `${APP_URL}/enroll`;
 
@@ -37,6 +37,8 @@ function startPlayer() {
     fullscreen: true,
     kiosk: !isDev,
     frame: false,
+    title: "ClinicScreen Player",
+    icon: APP_ICON_PATH,
     backgroundColor: "#0b1e3b",
     autoHideMenuBar: true,
     show: false, // stay hidden behind the splash until /enroll is loaded

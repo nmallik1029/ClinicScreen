@@ -8,7 +8,7 @@
 
 const { app, BrowserWindow, shell, Menu, session } = require("electron");
 const path = require("path");
-const { APP_URL, isDev, APP_HOST, isInternal, attachStartupSplash } = require("./shared");
+const { APP_URL, isDev, APP_HOST, isInternal, APP_ICON_PATH, attachStartupSplash } = require("./shared");
 
 // Which build is this: the admin "Manager" (default) or the kiosk "Player"?
 // Dev: pass --player. Packaged Player build: electron-builder writes csTarget into
@@ -29,7 +29,7 @@ const TARGET = process.argv.includes("--player")
 // the second one as a duplicate of the first — so you can't run the Manager and
 // Player on the same machine at the same time. A "(dev)" suffix keeps source runs
 // from clobbering an installed app's data.
-const appName = TARGET === "player" ? "ClinicScreen Player" : "ClinicScreen";
+const appName = TARGET === "player" ? "ClinicScreen Player" : "ClinicScreen Admin";
 app.setName(app.isPackaged ? appName : `${appName} (dev)`);
 
 // Wipe every session cookie — including the quickAuth IdP's login cookie — so the
@@ -175,7 +175,7 @@ function showOfflinePage(win) {
 function buildMenu() {
   const template = [
     {
-      label: "ClinicScreen",
+      label: appName,
       submenu: [
         {
           label: "Home",
@@ -236,7 +236,8 @@ function createWindow() {
     height: 860,
     minWidth: 940,
     minHeight: 640,
-    title: "ClinicScreen",
+    title: appName,
+    icon: APP_ICON_PATH,
     backgroundColor: "#0b1e3b",
     // Stay hidden behind the splash until the first page is loaded.
     show: false,

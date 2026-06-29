@@ -39,20 +39,22 @@ export default function AddAdminForm({ practiceId }: { practiceId: string }) {
         <SubmitButton />
       </div>
 
-      {state.error && <p className="sm:col-span-3 text-sm text-red-600">{state.error}</p>}
+      {state.error && (
+        <p className="sm:col-span-3 text-sm text-red-600 dark:text-red-400">{state.error}</p>
+      )}
       {state.message && (
-        <p className="sm:col-span-3 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+        <p className="sm:col-span-3 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-300">
           {state.message}
         </p>
       )}
       {state.tempPassword && (
-        <div className="sm:col-span-3 rounded border border-green-200 bg-green-50 p-3 text-sm">
-          <p className="font-medium text-green-800">Login created.</p>
-          <p className="mt-1 text-green-700">
-            Username <code className="rounded bg-white px-1">{state.username}</code> · Temporary
-            password <code className="rounded bg-white px-1">{state.tempPassword}</code>
+        <div className="sm:col-span-3 rounded border border-green-200 bg-green-50 p-3 text-sm dark:border-green-900/60 dark:bg-green-950/40">
+          <p className="font-medium text-green-800 dark:text-green-300">Login created.</p>
+          <p className="mt-1 text-green-700 dark:text-green-400">
+            Username <code className="rounded bg-white px-1 dark:bg-slate-800 dark:text-slate-100">{state.username}</code> · Temporary
+            password <code className="rounded bg-white px-1 dark:bg-slate-800 dark:text-slate-100">{state.tempPassword}</code>
           </p>
-          <p className="mt-1 text-xs text-green-700">
+          <p className="mt-1 text-xs text-green-700 dark:text-green-400">
             Share this once — they&apos;ll set their own password on first sign-in. It won&apos;t be shown again.
           </p>
         </div>

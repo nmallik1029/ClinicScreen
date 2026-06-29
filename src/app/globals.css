@@ -9,7 +9,8 @@ html {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900;
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -1,6 +1,7 @@
 {
   "appId": "com.clinicscreen.player",
   "productName": "ClinicScreen Player",
+  "icon": "icon.png",
   "directories": {
     "output": "dist-player",
     "buildResources": "assets"
@@ -14,9 +15,17 @@
     "splash.html"
   ],
   "extraMetadata": {
+    "description": "ClinicScreen Player",
     "csTarget": "player"
   },
+  "extraResources": [
+    {
+      "from": "assets/icon.png",
+      "to": "icon.png"
+    }
+  ],
   "win": {
+    "icon": "icon.png",
     "target": ["nsis"]
   },
   "nsis": {

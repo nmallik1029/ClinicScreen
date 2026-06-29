@@ -2,7 +2,7 @@
   "name": "clinicscreen-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "ClinicScreen admin desktop app (Electron shell over the deployed web app).",
+  "description": "ClinicScreen Admin",
   "author": "ClinicScreen",
   "main": "main.js",
   "scripts": {
@@ -16,7 +16,8 @@
   },
   "build": {
     "appId": "com.clinicscreen.admin",
-    "productName": "ClinicScreen",
+    "productName": "ClinicScreen Admin",
+    "icon": "icon.png",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
@@ -29,7 +30,14 @@
       "loading.html",
       "splash.html"
     ],
+    "extraResources": [
+      {
+        "from": "assets/icon.png",
+        "to": "icon.png"
+      }
+    ],
     "win": {
+      "icon": "icon.png",
       "target": [
         "nsis"
       ]
@@ -40,7 +48,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "ClinicScreen"
+      "shortcutName": "ClinicScreen Admin"
     }
   },
   "devDependencies": {

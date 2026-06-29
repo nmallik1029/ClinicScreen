@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Tabs, Input, Select, Label, Button, StatusBadge } from "@/components/ui";
+import { PageHeader, Card, Input, Select, Label, Button, StatusBadge } from "@/components/ui";
 import { createScreen, updateScreen, createRefreshCommand, resetDeviceToken, deleteScreen } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
@@ -33,19 +33,9 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
     prisma.location.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
     prisma.playlist.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
   ]);
-  const onlineCount = devices.filter((d) => deviceStatus(d.lastSeenAt) === "ONLINE").length;
-  const unassignedCount = devices.filter((d) => !d.assignedPlaylistId).length;
-  const metrics = {
-    Overview: { value: `${onlineCount}/${devices.length}`, note: "screens online" },
-    Screens: { value: devices.length, note: `${unassignedCount} need playlists` },
-    Locations: { value: locations.length },
-    Playlists: { value: playlists.length },
-  };
-
   return (
     <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Screens" />
-      <Tabs practiceId={practice.id} active="Screens" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="space-y-4 md:col-span-2">
@@ -54,8 +44,8 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
               <p className="text-sm text-slate-500">No screens yet.</p>
             </Card>
           )}
-          {devices.map((d) => (
-            <Card key={d.id}>
+          {devices.map((d, i) => (
+            <Card key={d.id} data-tour={i === 0 ? "screen-row" : undefined}>
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <p className="font-medium">{d.name}</p>
@@ -118,7 +108,11 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
                 </div>
                 <div>
                   <Label>Location</Label>
-                  <Select name="locationId" defaultValue={d.locationId ?? ""}>
+                  <Select
+                    name="locationId"
+                    defaultValue={d.locationId ?? ""}
+                    data-tour={i === 0 ? "screen-location" : undefined}
+                  >
                     <option value="">None</option>
                     {locations.map((l) => (
                       <option key={l.id} value={l.id}>
@@ -129,7 +123,11 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
                 </div>
                 <div>
                   <Label>Playlist</Label>
-                  <Select name="assignedPlaylistId" defaultValue={d.assignedPlaylistId ?? ""}>
+                  <Select
+                    name="assignedPlaylistId"
+                    defaultValue={d.assignedPlaylistId ?? ""}
+                    data-tour={i === 0 ? "screen-playlist" : undefined}
+                  >
                     <option value="">None</option>
                     {playlists.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -139,7 +137,7 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
                   </Select>
                 </div>
                 <div className="sm:col-span-4">
-                  <Button type="submit" variant="ghost">
+                  <Button type="submit" variant="ghost" data-tour={i === 0 ? "screen-save" : undefined}>
                     Save changes
                   </Button>
                 </div>
@@ -149,7 +147,7 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
         </div>
 
         <div className="space-y-4">
-        <Card>
+        <Card data-tour="screens-pair-card">
           <h2 className="mb-1 font-medium">Pair a screen</h2>
           <p className="mb-3 text-xs text-slate-500">
             Set up a TV: open the ClinicScreen Player app on its PC and enter the code it shows.

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Tabs, Input, Label, Button } from "@/components/ui";
+import { PageHeader, Card, Input, Label, Button } from "@/components/ui";
 import { createPlaylist, deletePlaylist } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import DeleteButton from "@/components/DeleteButton";
@@ -19,19 +19,9 @@ export default async function PlaylistsPage({ params }: { params: { practiceId: 
     orderBy: { name: "asc" },
     include: { _count: { select: { items: true, devices: true } } },
   });
-  const readyPlaylists = playlists.filter((p) => p._count.items > 0).length;
-  const assignedPlaylists = playlists.filter((p) => p._count.devices > 0).length;
-  const metrics = {
-    Screens: { value: practice._count.devices },
-    Locations: { value: practice._count.locations },
-    Media: { value: practice._count.media },
-    Playlists: { value: playlists.length, note: `${readyPlaylists} ready, ${assignedPlaylists} assigned` },
-  };
-
   return (
     <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Playlists" />
-      <Tabs practiceId={practice.id} active="Playlists" metrics={metrics} />
 
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2">
@@ -64,14 +54,16 @@ export default async function PlaylistsPage({ params }: { params: { practiceId: 
           </Card>
         </div>
 
-        <Card>
+        <Card data-tour="playlists-form">
           <h2 className="mb-3 font-medium">New playlist</h2>
           <form action={createPlaylist.bind(null, practice.id)} className="space-y-3">
             <div>
               <Label>Name</Label>
-              <Input name="name" placeholder="e.g. Waiting Room Loop" required />
+              <Input name="name" placeholder="e.g. Waiting Room Loop" required data-tour="playlist-name" />
             </div>
-            <Button type="submit">Create playlist</Button>
+            <Button type="submit" data-tour="playlist-submit">
+              Create playlist
+            </Button>
           </form>
         </Card>
       </div>

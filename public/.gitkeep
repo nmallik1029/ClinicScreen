@@ -1,0 +1,4 @@
+# Keeps public/ present in git and the Docker build context.
+# The Dockerfile copies /app/public; without a tracked file here, the empty
+# public/ folder (its only contents, uploads/, are dockerignored) would not
+# exist in the build and `COPY --from=build /app/public ./public` would fail.

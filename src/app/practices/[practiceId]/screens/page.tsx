@@ -43,11 +43,26 @@ export default async function ScreensPage({ params }: { params: { practiceId: st
           <h1 className="text-3xl font-light tracking-tight md:text-4xl">Hello, {displayName}</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{practice.name}</p>
         </div>
-        <form action="/auth/logout" method="post">
-          <button className="text-xs text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200">
-            Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/practices/${practice.id}/doctors`}
+            prefetch
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Doctors
+          </Link>
+          <form action="/auth/logout" method="post">
+            <button className="text-xs text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200">
+              Sign out
+            </button>
+          </form>
+        </div>
       </div>
 
       <Suspense fallback={null}>

@@ -79,7 +79,9 @@ Ok "Connected to Postgres"
 # --- 4. Create the database --------------------------------------------------
 Info "Ensuring database '$dbName' exists"
 $exists = & $psql -U $dbUser -h $dbHost -p $dbPort -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$dbName'"
-if ($exists.Trim() -eq "1") {
+# Coerce to string first: when the DB is missing psql returns nothing ($null),
+# and calling .Trim() on $null throws.
+if (("$exists").Trim() -eq "1") {
   Ok "Database already exists"
 } else {
   & $psql -U $dbUser -h $dbHost -p $dbPort -d postgres -c "CREATE DATABASE $dbName" *> $null

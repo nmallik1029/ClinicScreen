@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { presignMediaAction, finalizeMediaAction, createMedia } from "../actions";
 import { Input, Label, Button } from "@/components/ui";
+import { completeStep } from "@/lib/step-complete";
 
 // Upload the file straight to R2 via the presigned URL, reporting progress.
 function putToR2(
@@ -83,7 +84,8 @@ export default function MediaUploadForm({ practiceId }: { practiceId: string }) 
       setOk(true);
       setProgress(100);
       form.reset();
-      router.refresh();
+      // Animate the bottom progress bar then return to the checklist.
+      void completeStep(router, practiceId, "media");
     } catch {
       setError("Upload failed. Please try again.");
     } finally {

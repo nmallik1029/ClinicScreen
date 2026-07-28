@@ -12,11 +12,16 @@ export default function Walkthrough() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isPlayerSurface = pathname === "/enroll" || pathname.startsWith("/player/");
   const tourId = searchParams.get("tour");
   const steps: TourStep[] | null = tourId ? TOURS[tourId] ?? null : null;
 
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
+  // "locating" = still searching for the target (render nothing, so the centered
+  // fallback never flashes before we snap to the element); "found" = positioned
+  // on the target; "missing" = gave up, show the centered fallback.
+  const [phase, setPhase] = useState<"locating" | "found" | "missing">("locating");
   // Hide instantly on exit instead of waiting for the ?tour= param to clear —
   // otherwise there's a one-frame flash of the centered fallback overlay.
   const [dismissed, setDismissed] = useState(false);
@@ -45,20 +50,42 @@ export default function Walkthrough() {
 
   useEffect(() => {
     if (!step) return;
-    let tries = 0;
+    // On first load (especially after a client-side nav), the target can mount a
+    // few hundred ms after this runs. A fixed frame budget would give up too soon
+    // and leave the tooltip stuck in its centered fallback — so poll by elapsed
+    // time instead, and re-measure once after the smooth scroll settles.
+    let cancelled = false;
     let raf = 0;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    const start = performance.now();
+    const MAX_WAIT_MS = 5000;
+    setPhase("locating");
+
     const tick = () => {
+      if (cancelled) return;
       const el = document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         measure();
+        setPhase("found");
+        // Smooth scroll keeps moving the element; re-measure once it's stopped.
+        settleTimer = setTimeout(() => {
+          if (!cancelled) measure();
+        }, 400);
         return;
       }
-      if (tries++ < 30) raf = requestAnimationFrame(tick);
-      else setRect(null);
+      if (performance.now() - start < MAX_WAIT_MS) raf = requestAnimationFrame(tick);
+      else {
+        setRect(null);
+        setPhase("missing");
+      }
     };
     tick();
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      if (settleTimer) clearTimeout(settleTimer);
+    };
   }, [step, measure]);
 
   // Keep the spotlight glued to the element as the page scrolls/resizes.
@@ -90,7 +117,9 @@ export default function Walkthrough() {
     return () => window.removeEventListener("keydown", onKey);
   }, [steps, end]);
 
-  if (!steps || !step || dismissed) return null;
+  // While still locating the target, render nothing — this prevents the centered
+  // fallback from flashing on first show before we snap onto the element.
+  if (isPlayerSurface || !steps || !step || dismissed || phase === "locating") return null;
 
   const isLast = index === steps.length - 1;
   const isFirst = index === 0;

@@ -1,23 +1,26 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Input, Label, Button } from "@/components/ui";
-import { createLocation, deleteLocation } from "../actions";
+import { PageHeader, Card } from "@/components/ui";
+import { deleteLocation } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import DeleteButton from "@/components/DeleteButton";
+import CreateLocationForm from "@/components/CreateLocationForm";
 
 export default async function LocationsPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
-  const practice = await prisma.practice.findUnique({
-    where: { id: params.practiceId },
-    include: { _count: { select: { devices: true, locations: true, media: true, playlists: true } } },
-  });
+  // Independent queries — run them together instead of serially.
+  const [practice, locations] = await Promise.all([
+    prisma.practice.findUnique({
+      where: { id: params.practiceId },
+      include: { _count: { select: { devices: true, locations: true, media: true, playlists: true } } },
+    }),
+    prisma.location.findMany({
+      where: { practiceId: params.practiceId },
+      orderBy: { name: "asc" },
+      include: { _count: { select: { devices: true } } },
+    }),
+  ]);
   if (!practice) notFound();
-
-  const locations = await prisma.location.findMany({
-    where: { practiceId: practice.id },
-    orderBy: { name: "asc" },
-    include: { _count: { select: { devices: true } } },
-  });
   return (
     <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Locations" />
@@ -50,19 +53,7 @@ export default async function LocationsPage({ params }: { params: { practiceId: 
 
         <Card data-tour="locations-form">
           <h2 className="mb-3 font-medium">Add location</h2>
-          <form action={createLocation.bind(null, practice.id)} className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input name="name" placeholder="e.g. Main Office" required data-tour="location-name" />
-            </div>
-            <div>
-              <Label>Address (optional)</Label>
-              <Input name="address" placeholder="123 Heart St" />
-            </div>
-            <Button type="submit" data-tour="location-submit">
-              Add location
-            </Button>
-          </form>
+          <CreateLocationForm practiceId={practice.id} />
         </Card>
       </div>
     </div>

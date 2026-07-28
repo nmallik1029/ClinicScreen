@@ -7,16 +7,18 @@ import MediaItemActions from "./MediaItemActions";
 
 export default async function MediaPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
-  const practice = await prisma.practice.findUnique({
-    where: { id: params.practiceId },
-    include: { _count: { select: { devices: true, locations: true, playlists: true } } },
-  });
+  // Independent queries — run them together instead of serially.
+  const [practice, media] = await Promise.all([
+    prisma.practice.findUnique({
+      where: { id: params.practiceId },
+      include: { _count: { select: { devices: true, locations: true, playlists: true } } },
+    }),
+    prisma.media.findMany({
+      where: { practiceId: params.practiceId },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
   if (!practice) notFound();
-
-  const media = await prisma.media.findMany({
-    where: { practiceId: practice.id },
-    orderBy: { createdAt: "desc" },
-  });
   return (
     <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Media" />

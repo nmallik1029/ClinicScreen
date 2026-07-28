@@ -1,19 +1,7 @@
 import Link from "next/link";
+import type { SetupStep } from "@/lib/setup-steps";
 
-export type SetupStep = {
-  key: string;
-  title: string;
-  description: string;
-  /** Short status line, e.g. "2 of 3 screens placed". */
-  detail: string;
-  done: boolean;
-  /** Practice-relative section to send the technician to, e.g. "screens". */
-  href: string;
-  /** Call-to-action button label for the current step. */
-  cta: string;
-  /** Walkthrough id to launch on the destination page (highlights the elements). */
-  tour?: string;
-};
+export type { SetupStep };
 
 /** Build the destination link, launching the page walkthrough when one exists. */
 function stepHref(practiceId: string, step: SetupStep) {

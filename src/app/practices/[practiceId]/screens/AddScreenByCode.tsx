@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFormState, useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import { Input, Select, Label, Button } from "@/components/ui";
 import { claimScreenByCode, type ClaimState } from "../actions";
+import { completeStep } from "@/lib/step-complete";
 
 type LocationOption = { id: string; name: string };
 
@@ -22,8 +25,14 @@ export default function AddScreenByCode({
   practiceId: string;
   locations: LocationOption[];
 }) {
+  const router = useRouter();
   const action = claimScreenByCode.bind(null, practiceId);
   const [state, formAction] = useFormState<ClaimState, FormData>(action, {});
+
+  // On success, animate the bottom progress bar then return to the checklist.
+  useEffect(() => {
+    if (state.ok) completeStep(router, practiceId, "pair");
+  }, [state.ok, router, practiceId]);
 
   return (
     <form action={formAction} className="space-y-3">

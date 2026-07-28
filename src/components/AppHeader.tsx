@@ -9,12 +9,9 @@ export type HeaderUser = {
   isSuperadmin: boolean;
 } | null;
 
-const SECTIONS = [
-  { key: "screens", label: "Screens" },
-  { key: "locations", label: "Locations" },
-  { key: "media", label: "Media" },
-  { key: "playlists", label: "Playlists" },
-];
+// Everything is managed from the Screens area now (content + locations live in
+// each screen's editor/settings), so Screens is the only top-level section.
+const SECTIONS = [{ key: "screens", label: "Screens" }];
 
 /**
  * Single seamless top bar: brand on the far left, practice section nav in the
@@ -24,10 +21,15 @@ const SECTIONS = [
  */
 export default function AppHeader({ user }: { user: HeaderUser }) {
   const pathname = usePathname() ?? "";
+  const isPlayerSurface = pathname === "/enroll" || pathname.startsWith("/player/");
   const parts = pathname.split("/").filter(Boolean);
   const inPractice = parts[0] === "practices" && Boolean(parts[1]);
   const practiceId = inPractice ? parts[1] : null;
   const activeSection = inPractice ? parts[2] ?? "overview" : null;
+
+  // Inside a practice the screen-centric pages carry their own greeting / nav, so
+  // the global chrome is hidden there for a cleaner, app-like surface.
+  if (isPlayerSurface || inPractice) return null;
 
   // The brand doubles as "home": back to this practice's overview when inside
   // one, otherwise the app root.

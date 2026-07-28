@@ -1,13 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import DoctorCard, { type DoctorCardData } from "@/components/DoctorCard";
 
 type Item = {
   id: string;
   title: string;
-  type: "VIDEO" | "IMAGE";
+  type: "VIDEO" | "IMAGE" | "BLACK" | "DOCTOR";
   url: string;
   duration: number;
+  trimStartSeconds?: number;
+  trimEndSeconds?: number | null;
+  doctor?: DoctorCardData | null;
 };
 
 const FADE_MS = 500;
@@ -43,6 +47,14 @@ async function waitForVideoReady(el: HTMLVideoElement) {
   await Promise.race([waitForVideoEvent(el, "loadeddata"), waitForVideoEvent(el, "canplay")]);
 }
 
+function clipStart(item: Item) {
+  return Math.max(0, item.trimStartSeconds ?? 0);
+}
+
+function clipEnd(item: Item, el: HTMLVideoElement) {
+  return item.trimEndSeconds ?? (Number.isFinite(el.duration) ? el.duration : null);
+}
+
 function waitForDecodedFrame(el: HTMLVideoElement) {
   const requestFrame = el.requestVideoFrameCallback?.bind(el);
   if (!requestFrame) {
@@ -64,7 +76,7 @@ function waitForDecodedFrame(el: HTMLVideoElement) {
   });
 }
 
-export default function Player({ items }: { items: Item[] }) {
+export default function Player({ items, contained = false }: { items: Item[]; contained?: boolean }) {
   const len = items.length;
   const single = len === 1;
   const [index, setIndex] = useState(0);
@@ -88,9 +100,10 @@ export default function Player({ items }: { items: Item[] }) {
     try {
       el.pause();
       if (el.readyState === HAVE_NOTHING) el.load();
-      if (el.currentTime > 0.05 || el.ended) {
+      const start = clipStart(item);
+      if (Math.abs(el.currentTime - start) > 0.05 || el.ended) {
         shouldWaitForSeek = true;
-        el.currentTime = 0;
+        el.currentTime = start;
       }
     } catch {
       /* ignore */
@@ -118,22 +131,39 @@ export default function Player({ items }: { items: Item[] }) {
 
   const advanceBeforeVideoEnds = useCallback(
     (el: HTMLVideoElement) => {
-      if (!Number.isFinite(el.duration) || el.duration <= 0) return;
-      const remainingMs = (el.duration - el.currentTime) * 1000;
+      const end = clipEnd(currentItem, el);
+      if (end == null || end <= 0) return;
+      const remainingMs = (end - el.currentTime) * 1000;
       if (remainingMs <= VIDEO_ADVANCE_BEFORE_END_MS) advance();
     },
-    [advance]
+    [advance, currentItem]
+  );
+
+  const loopTrimmedSingle = useCallback(
+    (el: HTMLVideoElement) => {
+      if (!single || currentItem.type !== "VIDEO") return;
+      const end = clipEnd(currentItem, el);
+      if (end == null || el.currentTime < end - 0.04) return;
+      try {
+        el.currentTime = clipStart(currentItem);
+        el.play().catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    },
+    [currentItem, single]
   );
 
   useEffect(() => {
     advanceInFlightRef.current = false;
   }, [index]);
 
-  // Images advance on a timer; videos start their transition just before the end
-  // so the outgoing clip never gets a chance to paint an end-of-stream black frame.
+  // Images and black gaps advance on a timer; videos start their transition just
+  // before the end so the outgoing clip never paints an end-of-stream black frame.
   useEffect(() => {
-    if (single || currentItem.type !== "IMAGE") return;
-    const t = setTimeout(advance, Math.max(2, currentItem.duration) * 1000);
+    if (single || currentItem.type === "VIDEO") return;
+    const seconds = currentItem.type === "BLACK" ? currentItem.duration : Math.max(2, currentItem.duration);
+    const t = setTimeout(advance, Math.max(0.2, seconds) * 1000);
     return () => clearTimeout(t);
   }, [advance, currentItem.duration, currentItem.type, single]);
 
@@ -143,15 +173,25 @@ export default function Player({ items }: { items: Item[] }) {
   // the next transition — including the loop back to the first clip.
   useEffect(() => {
     videoEls.current.forEach((el, id) => {
-      if (id === currentItem.id) el.play().catch(() => {});
-      else el.pause();
+      if (id === currentItem.id) {
+        if (el.currentTime < clipStart(currentItem)) {
+          try {
+            el.currentTime = clipStart(currentItem);
+          } catch {
+            /* ignore */
+          }
+        }
+        el.play().catch(() => {});
+      } else el.pause();
     });
 
     const t = setTimeout(() => {
       videoEls.current.forEach((el, id) => {
         if (id === currentItem.id) return;
+        const item = items.find((candidate) => candidate.id === id);
+        const start = item ? clipStart(item) : 0;
         try {
-          el.currentTime = 0;
+          el.currentTime = start;
         } catch {
           /* ignore */
         }
@@ -160,7 +200,7 @@ export default function Player({ items }: { items: Item[] }) {
           .then(() => {
             el.pause();
             try {
-              el.currentTime = 0;
+              el.currentTime = start;
             } catch {
               /* ignore */
             }
@@ -170,7 +210,7 @@ export default function Player({ items }: { items: Item[] }) {
     }, FADE_MS + 60);
 
     return () => clearTimeout(t);
-  }, [currentItem.id, index]);
+  }, [currentItem, index, items]);
 
   // Mount the current clip plus the previous (fading out) and next (preloaded), in
   // stable index order so the elements aren't reordered between renders.
@@ -179,13 +219,25 @@ export default function Player({ items }: { items: Item[] }) {
     : Array.from(new Set([prevIdx, curIdx, nextIdx])).sort((a, b) => a - b);
 
   return (
-    <div className="fixed inset-0 bg-black">
+    <div className={`${contained ? "absolute" : "fixed"} inset-0 bg-black`}>
       {mounted.map((i) => {
         const item = items[i];
         const isCurrent = i === curIdx;
         const cls = `absolute inset-0 h-full w-full object-cover transition-opacity ease-linear duration-500 ${
           isCurrent ? "opacity-100" : "opacity-0"
         }`;
+
+        if (item.type === "BLACK") {
+          return <div key={item.id} className={`${cls} bg-black`} />;
+        }
+
+        if (item.type === "DOCTOR") {
+          return (
+            <div key={item.id} className={cls}>
+              {item.doctor && <DoctorCard doctor={item.doctor} />}
+            </div>
+          );
+        }
 
         if (item.type === "IMAGE") {
           // eslint-disable-next-line @next/next/no-img-element
@@ -212,9 +264,25 @@ export default function Player({ items }: { items: Item[] }) {
             muted
             playsInline
             preload="auto"
-            loop={single}
+            loop={single && !item.trimStartSeconds && !item.trimEndSeconds}
+            onLoadedMetadata={
+              isCurrent
+                ? (event) => {
+                    try {
+                      event.currentTarget.currentTime = clipStart(item);
+                    } catch {
+                      /* ignore */
+                    }
+                  }
+                : undefined
+            }
             onTimeUpdate={
-              isCurrent && !single ? (event) => advanceBeforeVideoEnds(event.currentTarget) : undefined
+              isCurrent
+                ? (event) => {
+                    if (single) loopTrimmedSingle(event.currentTarget);
+                    else advanceBeforeVideoEnds(event.currentTarget);
+                  }
+                : undefined
             }
             onEnded={isCurrent && !single ? advance : undefined}
             onError={isCurrent ? advance : undefined}

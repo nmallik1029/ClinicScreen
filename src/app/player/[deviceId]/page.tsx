@@ -3,6 +3,7 @@ import Player from "./Player";
 import DeviceAgent from "./DeviceAgent";
 import Repair from "./Repair";
 import FullscreenBody from "@/components/FullscreenBody";
+import { toPlayerItems } from "@/lib/player-items";
 
 export default async function PlayerPage({
   params,
@@ -15,7 +16,7 @@ export default async function PlayerPage({
     where: { id: params.deviceId },
     include: {
       assignedPlaylist: {
-        include: { items: { orderBy: { position: "asc" }, include: { media: true } } },
+        include: { items: { orderBy: { position: "asc" }, include: { media: true, doctor: true } } },
       },
     },
   });
@@ -64,13 +65,7 @@ export default async function PlayerPage({
     );
   }
 
-  const playerItems = items.map((it) => ({
-    id: it.id,
-    title: it.media.title,
-    type: it.media.type,
-    url: it.media.url,
-    duration: it.durationOverrideSeconds ?? it.media.durationSeconds ?? 10,
-  }));
+  const playerItems = toPlayerItems(items);
 
   return (
     <>

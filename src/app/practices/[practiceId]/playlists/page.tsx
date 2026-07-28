@@ -1,24 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Input, Label, Button } from "@/components/ui";
-import { createPlaylist, deletePlaylist } from "../actions";
+import { PageHeader, Card } from "@/components/ui";
+import { deletePlaylist } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import DeleteButton from "@/components/DeleteButton";
+import CreatePlaylistForm from "@/components/CreatePlaylistForm";
 
 export default async function PlaylistsPage({ params }: { params: { practiceId: string } }) {
   await requirePracticeAccess(params.practiceId);
-  const practice = await prisma.practice.findUnique({
-    where: { id: params.practiceId },
-    include: { _count: { select: { devices: true, locations: true, media: true } } },
-  });
+  // Independent queries — run them together instead of serially.
+  const [practice, playlists] = await Promise.all([
+    prisma.practice.findUnique({
+      where: { id: params.practiceId },
+      include: { _count: { select: { devices: true, locations: true, media: true } } },
+    }),
+    prisma.playlist.findMany({
+      where: { practiceId: params.practiceId },
+      orderBy: { name: "asc" },
+      include: { _count: { select: { items: true, devices: true } } },
+    }),
+  ]);
   if (!practice) notFound();
-
-  const playlists = await prisma.playlist.findMany({
-    where: { practiceId: practice.id },
-    orderBy: { name: "asc" },
-    include: { _count: { select: { items: true, devices: true } } },
-  });
   return (
     <div className="practice-page">
       <PageHeader title={practice.name} subtitle="Playlists" />
@@ -56,15 +59,7 @@ export default async function PlaylistsPage({ params }: { params: { practiceId: 
 
         <Card data-tour="playlists-form">
           <h2 className="mb-3 font-medium">New playlist</h2>
-          <form action={createPlaylist.bind(null, practice.id)} className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input name="name" placeholder="e.g. Waiting Room Loop" required data-tour="playlist-name" />
-            </div>
-            <Button type="submit" data-tour="playlist-submit">
-              Create playlist
-            </Button>
-          </form>
+          <CreatePlaylistForm practiceId={practice.id} />
         </Card>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import FullscreenBody from "@/components/FullscreenBody";
 
 // Device-facing pairing screen. Loaded by the ClinicScreen Player app on a TV PC.
@@ -15,12 +15,8 @@ type Phase = "starting" | "waiting" | "claimed" | "offline";
 export default function EnrollPage() {
   const [phase, setPhase] = useState<Phase>("starting");
   const [code, setCode] = useState<string | null>(null);
-  const started = useRef(false);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-
     // Already paired? Go straight to playback.
     try {
       const saved = localStorage.getItem(DEVICE_KEY);

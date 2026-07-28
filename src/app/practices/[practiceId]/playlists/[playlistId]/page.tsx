@@ -11,19 +11,21 @@ export default async function PlaylistDetailPage({
   params: { practiceId: string; playlistId: string };
 }) {
   await requirePracticeAccess(params.practiceId);
-  const playlist = await prisma.playlist.findUnique({
-    where: { id: params.playlistId },
-    include: {
-      items: { orderBy: { position: "asc" }, include: { media: true } },
-      devices: true,
-    },
-  });
+  // Independent queries — run them together instead of serially.
+  const [playlist, media] = await Promise.all([
+    prisma.playlist.findUnique({
+      where: { id: params.playlistId },
+      include: {
+        items: { orderBy: { position: "asc" }, include: { media: true } },
+        devices: true,
+      },
+    }),
+    prisma.media.findMany({
+      where: { practiceId: params.practiceId },
+      orderBy: { title: "asc" },
+    }),
+  ]);
   if (!playlist || playlist.practiceId !== params.practiceId) notFound();
-
-  const media = await prisma.media.findMany({
-    where: { practiceId: params.practiceId },
-    orderBy: { title: "asc" },
-  });
 
   return (
     <div>
@@ -52,8 +54,8 @@ export default async function PlaylistDetailPage({
                   >
                     <span>
                       <span className="mr-2 text-slate-400">{item.position}.</span>
-                      {item.media.title}{" "}
-                      <span className="text-slate-400">· {item.media.type}</span>
+                      {item.media?.title ?? "Doctor card"}{" "}
+                      <span className="text-slate-400">· {item.media?.type ?? "DOCTOR"}</span>
                     </span>
                     <form
                       action={removePlaylistItem.bind(

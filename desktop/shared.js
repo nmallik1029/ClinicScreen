@@ -4,9 +4,13 @@ const path = require("path");
 
 // The deployed app the shells point at. Override at launch with CLINICSCREEN_URL=…
 // (and QUICKAUTH_URL=…) for staging/local testing.
-const APP_URL = process.env.CLINICSCREEN_URL || "https://clinicscreen-app.nmallik1029.workers.dev";
-const AUTH_URL = process.env.QUICKAUTH_URL || "https://clinicscreen-auth.nmallik1029.workers.dev";
 const isDev = process.argv.includes("--dev");
+const APP_URL =
+  process.env.CLINICSCREEN_URL ||
+  (isDev ? "http://localhost:3001" : "https://clinicscreen-app.nmallik1029.workers.dev");
+const AUTH_URL =
+  process.env.QUICKAUTH_URL ||
+  (isDev ? "http://localhost:3000" : "https://clinicscreen-auth.nmallik1029.workers.dev");
 const APP_ICON_PATH = appIconPath();
 
 function appIconPath() {

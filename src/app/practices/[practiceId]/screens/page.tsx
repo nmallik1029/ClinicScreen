@@ -1,192 +1,93 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
-import { PageHeader, Card, Input, Select, Label, Button, StatusBadge } from "@/components/ui";
-import { createScreen, updateScreen, createRefreshCommand, resetDeviceToken, deleteScreen } from "../actions";
 import { requirePracticeAccess } from "@/lib/auth";
 import { deviceStatus } from "@/lib/status";
-import DeleteButton from "@/components/DeleteButton";
-import { expireStalePending, RECENT_COMMAND_MS } from "@/lib/commands";
-import AddScreenByCode from "./AddScreenByCode";
+import { expireStalePending } from "@/lib/commands";
+import { getSetupSteps } from "@/lib/setup-steps";
+import { toPlayerItems } from "@/lib/player-items";
+import ScreenCard from "@/components/ScreenCard";
+import SetupStepsCard from "@/components/SetupStepsCard";
+import StepDoneBanner from "@/components/StepDoneBanner";
 
 export default async function ScreensPage({ params }: { params: { practiceId: string } }) {
-  await requirePracticeAccess(params.practiceId);
-  const practice = await prisma.practice.findUnique({ where: { id: params.practiceId } });
-  if (!practice) notFound();
-
-  await expireStalePending({ practiceId: practice.id });
-
-  const [devices, locations, playlists] = await Promise.all([
+  const user = await requirePracticeAccess(params.practiceId);
+  // One parallel batch instead of a serial chain of round-trips.
+  const [practice, devices, steps] = await Promise.all([
+    prisma.practice.findUnique({ where: { id: params.practiceId } }),
     prisma.device.findMany({
-      where: { practiceId: practice.id },
+      where: { practiceId: params.practiceId },
       orderBy: { name: "asc" },
       include: {
         location: true,
-        assignedPlaylist: true,
-        commands: {
-          where: { createdAt: { gte: new Date(Date.now() - RECENT_COMMAND_MS) } },
-          orderBy: { createdAt: "desc" },
-          take: 3,
+        assignedPlaylist: {
+          include: { items: { orderBy: { position: "asc" }, include: { media: true, doctor: true } } },
         },
       },
     }),
-    prisma.location.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
-    prisma.playlist.findMany({ where: { practiceId: practice.id }, orderBy: { name: "asc" } }),
+    getSetupSteps(params.practiceId),
   ]);
+  if (!practice) notFound();
+
+  // Housekeeping (expire timed-out pairing codes) — off the render critical path.
+  void expireStalePending({ practiceId: params.practiceId }).catch(() => {});
+
+  const displayName = user.preferredName ?? user.name;
+
   return (
     <div className="practice-page">
-      <PageHeader title={practice.name} subtitle="Screens" />
+      {/* Greeting + sign out (the global header is hidden inside a practice) */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-light tracking-tight md:text-4xl">Hello, {displayName}</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{practice.name}</p>
+        </div>
+        <form action="/auth/logout" method="post">
+          <button className="text-xs text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-200">
+            Sign out
+          </button>
+        </form>
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="space-y-4 md:col-span-2">
-          {devices.length === 0 && (
-            <Card>
-              <p className="text-sm text-slate-500">No screens yet.</p>
-            </Card>
-          )}
-          {devices.map((d, i) => (
-            <Card key={d.id} data-tour={i === 0 ? "screen-row" : undefined}>
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{d.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {d.location?.name ?? "No location"} · {d.roomType ?? "No room type"}
-                    {d.lastSeenAt ? ` · last seen ${d.lastSeenAt.toLocaleString()}` : " · never seen"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={deviceStatus(d.lastSeenAt)} />
-                  <form action={createRefreshCommand.bind(null, practice.id, d.id)}>
-                    <Button type="submit" variant="ghost">
-                      Refresh screen
-                    </Button>
-                  </form>
-                  {d.token ? (
-                    <Link
-                      href={`/player/${d.id}?t=${encodeURIComponent(d.token)}`}
-                      target="_blank"
-                      className="text-xs text-blue-700"
-                    >
-                      Open player ↗
-                    </Link>
-                  ) : null}
-                  <form action={resetDeviceToken.bind(null, practice.id, d.id)}>
-                    <button
-                      type="submit"
-                      className="text-xs text-slate-400 hover:text-slate-700"
-                      title="Invalidate the current player link and generate a new one"
-                    >
-                      Reset link
-                    </button>
-                  </form>
-                  <DeleteButton
-                    action={deleteScreen.bind(null, practice.id, d.id)}
-                    confirmText={`Delete screen "${d.name}"?`}
-                  />
-                </div>
-              </div>
+      <Suspense fallback={null}>
+        <StepDoneBanner steps={steps} />
+      </Suspense>
 
-              {d.commands.length > 0 && (
-                <ul className="mb-3 space-y-0.5 text-xs text-slate-500">
-                  {d.commands.map((c) => (
-                    <li key={c.id}>
-                      {c.commandType} · {c.status} · sent {c.createdAt.toLocaleTimeString()}
-                      {c.completedAt ? ` · done ${c.completedAt.toLocaleTimeString()}` : ""}
-                    </li>
-                  ))}
-                </ul>
-              )}
+      {/* Grid on the left, setup card as a sidebar on the right. Flex so the grid
+          reclaims the full width once the setup card removes itself. */}
+      <div className="mt-2 flex flex-col gap-6 lg:flex-row">
+        <div className="grid h-fit flex-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {devices.map((d) => {
+            const items = d.assignedPlaylist?.items ?? [];
+            return (
+              <ScreenCard
+                key={d.id}
+                practiceId={practice.id}
+                deviceId={d.id}
+                name={d.name}
+                locationName={d.location?.name ?? null}
+                roomType={d.roomType}
+                status={deviceStatus(d.lastSeenAt)}
+                previewItems={toPlayerItems(items)}
+              />
+            );
+          })}
 
-              <form action={updateScreen.bind(null, practice.id, d.id)} className="grid gap-2 sm:grid-cols-4">
-                <div>
-                  <Label>Name</Label>
-                  <Input name="name" defaultValue={d.name} />
-                </div>
-                <div>
-                  <Label>Room type</Label>
-                  <Input name="roomType" defaultValue={d.roomType ?? ""} placeholder="e.g. Waiting Room" />
-                </div>
-                <div>
-                  <Label>Location</Label>
-                  <Select
-                    name="locationId"
-                    defaultValue={d.locationId ?? ""}
-                    data-tour={i === 0 ? "screen-location" : undefined}
-                  >
-                    <option value="">None</option>
-                    {locations.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <Label>Playlist</Label>
-                  <Select
-                    name="assignedPlaylistId"
-                    defaultValue={d.assignedPlaylistId ?? ""}
-                    data-tour={i === 0 ? "screen-playlist" : undefined}
-                  >
-                    <option value="">None</option>
-                    {playlists.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="sm:col-span-4">
-                  <Button type="submit" variant="ghost" data-tour={i === 0 ? "screen-save" : undefined}>
-                    Save changes
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          ))}
+          {/* Add / pair a screen */}
+          <Link
+            href={`/practices/${practice.id}/screens/pair`}
+            className="flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 p-6 text-center text-slate-500 transition-colors hover:border-blue-400 hover:bg-blue-50/40 hover:text-blue-600 dark:border-slate-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/30"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-2xl leading-none dark:bg-slate-800">
+              +
+            </span>
+            <span className="text-sm font-medium">Pair a screen</span>
+            <span className="text-xs">Connect a new TV or device</span>
+          </Link>
         </div>
 
-        <div className="space-y-4">
-        <Card data-tour="screens-pair-card">
-          <h2 className="mb-1 font-medium">Pair a screen</h2>
-          <p className="mb-3 text-xs text-slate-500">
-            Set up a TV: open the ClinicScreen Player app on its PC and enter the code it shows.
-          </p>
-          <AddScreenByCode
-            practiceId={practice.id}
-            locations={locations.map((l) => ({ id: l.id, name: l.name }))}
-          />
-        </Card>
-
-        <Card>
-          <h2 className="mb-1 font-medium">Add screen manually</h2>
-          <p className="mb-3 text-xs text-slate-500">
-            Creates a screen + player link without a device present.
-          </p>
-          <form action={createScreen.bind(null, practice.id)} className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input name="name" placeholder="e.g. Waiting Room" required />
-            </div>
-            <div>
-              <Label>Room type (optional)</Label>
-              <Input name="roomType" placeholder="e.g. Exam Room" />
-            </div>
-            <div>
-              <Label>Location (optional)</Label>
-              <Select name="locationId" defaultValue="">
-                <option value="">None</option>
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <Button type="submit">Add screen</Button>
-          </form>
-        </Card>
-        </div>
+        <SetupStepsCard practiceId={practice.id} steps={steps} />
       </div>
     </div>
   );
